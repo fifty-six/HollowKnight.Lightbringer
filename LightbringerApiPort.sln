@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testing", "Testing\Testing.csproj", "{AC3F861C-34E8-426E-BB02-390E53440529}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightbringerApiPort", "Lightbringer\LightbringerApiPort.csproj", "{AC3F861C-34E8-426E-BB02-390E53440529}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
