@@ -3,39 +3,140 @@ using Modding;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
 using System.Reflection;
+using JetBrains.Annotations;
+using ModCommon;
+using On.HutongGames.PlayMaker.Actions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 using Random = System.Random;
 
 namespace Lightbringer
 {
+    // ReSharper disable once UnusedMember.Global
     public class Lightbringer : Mod
     {
         // Empress Muzznik variables
-        private GameObject Gruz;
+        private readonly Dictionary<string, string> _langDict = new Dictionary<string, string>
+        {
+            ["SHOP_DESC_GEOGATHERER"] =
+                "Do you find yourself leaving a lot of Geo behind as you hurry through the caverns?\n\nThis charm will make sure that any loose change finds its way back to you!",
+            ["CHARM_DESC_13"] =
+                "Trophy given to those proven to be worthy. A requirement for any who wish to master the nail.\n\nGreatly increases the range of the bearer's nail and causes it to deal more damage based on what they have accomplished.",
+            ["CHARM_DESC_14"] =
+                "What is this? Why does it exist? Is it safe to use?\n\nSlashing upwards speeds up the flow of time. Injury of self will break the effect.",
+            ["CHARM_DESC_15"] =
+                "A small trinket made of valuable metal and precious stone.\n\nLanding five successful nail attacks on an enemy will restore health.",
+            ["CHARM_DESC_17"] =
+                "Composed of living fungal matter. Scatters spores when exposed to SOUL.\n\nWhen focusing SOUL, emit a spore cloud that slowly damages enemies. Increases SOUL regeneration rate slightly.",
+            ["CHARM_DESC_18"] =
+                "A metal badge that is cold to the touch. It brings back warm memories.\n\nFire lances in both directions when attacking.",
+            ["CHARM_NAME_25_BRK"] = "Fragile Nightmare (Repair)",
+            ["CHARM_DESC_20"] =
+                "A token given to those embarking on a great journey.\n\nSplit the lance attack into two projectiles, allowing the user to hit multiple enemies at once (cannot hit the same enemy twice).",
+            ["CHARM_DESC_21"] =
+                "A poorly made wallet that seems to lose all the geo you put in it.\n\nPicked up geo is converted directly into SOUL.",
+            ["CHARM_DESC_22"] =
+                "Drains the SOUL of its bearer and uses it to birth hatchlings.\n\nThe hatchlings have no desire to eat or live, and will sacrifice themselves to protect their parent. Increases SOUL regeneration rate slightly.",
+            ["CHARM_DESC_25"] =
+                "Attacks cost a small amount of SOUL but lance damage is increased based on current SOUL (up to +10 damage). Increases SOUL regeneration rate slightly.\n\nThis charm is fragile, and will break if its bearer is killed.",
+            ["CHARM_DESC_26"] =
+                "Contains the passion, skill, and regrets of a Nailmaster.\n\nCharge nail arts faster and summon lances around the user at random.",
+            ["CHARM_DESC_28"] =
+                "Reveals the form of Unn within the bearer.\n\nWhile focusing SOUL, the bearer will take on a new shape and can move freely to avoid enemies. Increases SOUL regeneration rate slightly.",
+            ["CHARM_NAME_13"] = "Burning Pride",
+            ["INV_NAME_NAIL4"] = "Lance of Light +3",
+            ["INV_NAME_NAIL5"] = "Severance",
+            ["CHARM_DESC_30"] =
+                "Transient charm created for those who wield the Dream Nail and collect Essence.\n\nAllows the bearer to charge the Dream Nail faster and collect more SOUL with it. Increases SOUL regeneration rate slightly.",
+            ["CHARM_DESC_32"] =
+                "Born from imperfect, discarded nails that have fused together. The nails still long to be wielded.\n\nIncreases attack speed moderately.",
+            ["CHARM_DESC_34"] =
+                "Naturally formed within a crystal over a long period. Draws in SOUL from the surrounding air.\n\nThe bearer will focus SOUL at a slower rate, but the healing effect will double and holy power is unleashed. Increases SOUL regeneration rate slightly.",
+            ["CHARM_DESC_35"] =
+                "Imbues the lance with holy energy.\n\nGreatly increases damage and lance size.",
+            ["CHARM_DESC_25_G"] =
+                "Attacks cost a small amount of SOUL but lance damage is increased based on current SOUL (up to +10 damage). Increases SOUL regeneration rate slightly.\n\nThis charm is unbreakable.",
+            ["CHARM_NAME_25"] = "Fragile Nightmare",
+            ["SHOP_DESC_SPELLDMGUP"] =
+                "Are you a spellcaster, you little scoundrel? Ho ho! I'm only teasing.\n\nIf you ever learn any spells you should buy this charm for yourself. I've heard it can awaken hidden powers in whoever holds it!",
+            ["SHOP_DESC_ENEMYRECOILUP"] =
+                "Tired of having to heal in the middle of a fight? With this charm equipped, you can just whack enemies with your nail until your health is back!",
+            ["INV_NAME_NAIL1"] = "Lance of Light",
+            ["INV_NAME_NAIL2"] = "Lance of Light +1",
+            ["INV_NAME_NAIL3"] = "Lance of Light +2",
+            ["CHARM_DESC_6"] =
+                "Reserved for only the strongest of challengers.\n\nAmplifies lance damage based on current health, but the user will be destroyed in a single blow.",
+            ["INV_DESC_NAIL1"] = "Summons a lance of light from thin air to destroy your enemies.",
+            ["INV_DESC_NAIL2"] = "Summons a lance of light from thin air to destroy your enemies.",
+            ["INV_DESC_NAIL3"] = "Summons a lance of light from thin air to destroy your enemies.",
+            ["INV_DESC_NAIL4"] = "Summons a lance of light from thin air to destroy your enemies.",
+            ["INV_DESC_NAIL5"] = "It is time. Bring forth the light.",
+            ["CHARM_NAME_25_G"] = "Unbreakable Nightmare",
+            ["CHARM_DESC_25_BROKEN"] =
+                "Attacks cost a small amount of SOUL but lance damage is increased based on current SOUL (up to +10 damage). Increases SOUL regeneration rate slightly.\n\nThis charm has broken, and the power inside has been silenced. It can not be equipped.",
+            ["SHOP_DESC_BLUEHEALTHSMALL"] =
+                "Having trouble taking out enemies that fly high above you?\n\nWith this, you can fire lances into the sky!",
+            ["SHOP_DESC_LONGNAIL"] =
+                "Are you tired of only attacking in one direction?\n\nHo! Ho ho ho! Go on, take this charm home with you. It may provide the service you are looking for...",
+            ["CHARM_NAME_2"] = "Panic Compass",
+            ["CHARM_NAME_3"] = "Bloodsong",
+            ["CHARM_NAME_4"] = "Tiny Shell",
+            ["CHARM_NAME_6"] = "Glass Soul",
+            ["CHARM_NAME_8"] = "Rising Light",
+            ["SHOP_DESC_NORECOIL"] =
+                "I don't know where this came from... Was it always here? Should I sell it?\n\nWhatever it is, it should be used with extreme caution.",
+            ["SHOP_DESC_STALWARTSHELL"] =
+                "Life in Hallownest can be tough, always taking hits and getting knocked around. The bigger you are, the harder you fall. This charm is the solution to that.",
+            ["CHARM_DESC_1"] =
+                "A swarm will follow the bearer and gather up any loose Geo.\n\nUseful for those who can't bear to leave anything behind, no matter how insignificant.",
+            ["CHARM_NAME_14"] = "Time Fracture",
+            ["CHARM_NAME_15"] = "Bloodlust",
+            ["CHARM_NAME_18"] = "Silent Divide",
+            ["CHARM_NAME_19"] = "Eye of the Storm",
+            ["CHARM_DESC_8"] =
+                "A metal shell that vibrates continuously.\n\nAttacking upwards releases a barrage of lances.",
+            ["CHARM_NAME_20"] = "Twin Fangs",
+            ["CHARM_NAME_21"] = "Faulty Wallet",
+            ["CHARM_NAME_26"] = "Nailmaster's Passion",
+            ["CHARM_NAME_35"] = "Radiant Jewel",
+            ["CHARM_DESC_19"] =
+                "An artifact said to bring out the true power hidden inside of its user.\n\nIncreases the power of spells, dealing more damage to foes. Replaces some attacks with intense blasts of energy. Increases SOUL regeneration rate slightly.",
+            ["CHARM_DESC_2"] =
+                "Whispers its location to the bearer whenever a map is open, allowing wanderers to pinpoint their current location.\n\nIncreases the wearer's movement speed by 3% for each missing mask.",
+            ["CHARM_DESC_3"] =
+                "A pendant forged from bone and blood. Do you feel guilty, or proud?\n\nGain a chance to make a critical damage attack. This chance increases with each new victim you claim (in your Hunter's Journal).",
+            ["SHOP_DESC_WAYWARDCOMPASS"] =
+                "Highly recommended! If you're having trouble finding your way in the maze of ruins below us, try this charm.\n\nIt will pinpoint your location on your map, and even help you get around a bit quicker!",
+            ["CHARM_DESC_4"] =
+                "A shell suited for someone tiny yet tough. When recovering from damage, the bearer will remain invulnerable for longer.\n\nDecreases your size by 25%.",
+        };
 
-        private bool[] GruzFight;
+        private GameObject _gruz;
 
-        private PlayMakerFSM GruzHealth;
+        private bool[] _gruzFight;
 
-        private GameObject GruzMinion;
+        private HealthManager _gruzHealth;
 
-        private GameObject[] GruzMinions;
+        private GameObject _gruzMinion;
 
-        private int HitNumber;
+        private GameObject[] _gruzMinions;
 
-        private int? Inter;
+        private int _hitNumber;
+
+        private int? _inter;
 
         // Lost Kins variables
-        private GameObject Kin;
+        private GameObject _kin;
 
-        private bool[] KinFight;
+        private HealthManager _kinHealth;
 
-        private PlayMakerFSM KinHealth;
+        private bool[] _kinFight;
 
-        private GameObject KinTwo;
+        private GameObject _kinTwo;
 
         private float _invincibleTime = Time.deltaTime;
 
@@ -56,16 +157,32 @@ namespace Lightbringer
 
         private SpriteFlash SpriteFlash => GetAttr<SpriteFlash>(HeroController.instance, "spriteFlash");
 
-        private T GetAttr<T>(object obj, string attr)
+        private static readonly Dictionary<Type, Dictionary<string, FieldInfo>> Fields =
+            new Dictionary<Type, Dictionary<string, FieldInfo>>();
+
+        private T GetAttr<T>(object obj, string name, bool instance = true)
         {
-            if (FieldInfoDict.ContainsKey(attr))
+            if (obj == null || string.IsNullOrEmpty(name)) return default(T);
+
+            Type t = obj.GetType();
+
+            if (!Fields.ContainsKey(t))
             {
-                return (T) FieldInfoDict[attr]?.GetValue(obj);
+                Fields.Add(t, new Dictionary<string, FieldInfo>());
             }
 
-            FieldInfoDict[attr] = obj.GetType().GetField(attr, BindingFlags.NonPublic | BindingFlags.Instance);
-            return (T) FieldInfoDict[attr]?.GetValue(obj);
+            Dictionary<string, FieldInfo> typeFields = Fields[t];
+
+            if (!typeFields.ContainsKey(name))
+            {
+                typeFields.Add(name,
+                    t.GetField(name,
+                        BindingFlags.NonPublic | (instance ? BindingFlags.Instance : BindingFlags.Static)));
+            }
+
+            return (T) typeFields[name]?.GetValue(obj);
         }
+
 
         public override void Initialize()
         {
@@ -80,623 +197,772 @@ namespace Lightbringer
             On.NailSlash.StartSlash += StartSlash;
             On.HeroController.CharmUpdate += CharmUpdate;
             On.HeroController.Move += Move;
-            // UnityEngine.SceneManagement.SceneManager.activeSceneChanged += SceneChanged;
+            ModHooks.Instance.LanguageGetHook += LangGet;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoadedHook;
         }
 
-        private Dictionary<string, FieldInfo> FieldInfoDict = new Dictionary<string, FieldInfo>();
-        private void SetAttr<T>(object obj, string attr, T val)
+        private string LangGet(string key, string sheetTitle)
         {
-            if (FieldInfoDict.ContainsKey(attr))
-            {
-                FieldInfoDict[attr]?.SetValue(obj, val);
-            }
-            else
-            {
-                FieldInfoDict[attr] = obj.GetType().GetField(attr, BindingFlags.NonPublic | BindingFlags.Instance);
-                FieldInfoDict[attr]?.SetValue(obj, val);
-            }
+            return _langDict.TryGetValue(key, out string val) ? val : Language.Language.GetInternal(key, sheetTitle);
         }
+
+        private void SetAttr<T>(object obj, string name, T val, bool instance = true)
+        {
+            if (obj == null || string.IsNullOrEmpty(name)) return;
+
+            Type t = obj.GetType();
+
+            if (!Fields.ContainsKey(t))
+            {
+                Fields.Add(t, new Dictionary<string, FieldInfo>());
+            }
+
+            Dictionary<string, FieldInfo> typeFields = Fields[t];
+
+            if (!typeFields.ContainsKey(name))
+            {
+                typeFields.Add(name,
+                    t.GetField(name,
+                        BindingFlags.NonPublic | (instance ? BindingFlags.Instance : BindingFlags.Static)));
+            }
+
+            typeFields[name]?.SetValue(obj, val);
+        }
+
 
         private void AddGeo(On.PlayerData.orig_AddGeo orig, PlayerData self, int amount)
         {
             // Don't let Faulty Wallet hurt people with full SOUL
-            if (PlayerData.instance.equippedCharm_21 && (PlayerData.instance.MPCharge < 99 || PlayerData.instance.MPReserve != PlayerData.instance.MPReserveMax))
+            if (PlayerData.instance.equippedCharm_21 && (PlayerData.instance.MPCharge < PlayerData.instance.maxMP ||
+                                                         PlayerData.instance.MPReserve !=
+                                                         PlayerData.instance.MPReserveMax))
             {
-                PlayerData.instance.AddMPCharge(amount * 3);
+                int lostGeo = (PlayerData.instance.maxMP - 1 - PlayerData.instance.MPCharge) / 3 +
+                          (PlayerData.instance.MPReserveMax - PlayerData.instance.MPReserve) / 3 + 1;
+                PlayerData.instance.AddMPCharge(lostGeo > amount ? amount * 3: lostGeo * 3);
+                orig(self, lostGeo > amount ? 0 : amount - lostGeo);
             }
             else
             {
-                PlayerData.instance.geo += amount;
-                if (PlayerData.instance.geo > 9999999)
-                {
-                    PlayerData.instance.geo = 9999999;
-                }
+                orig(self, amount);
             }
         }
 
         private void Attack(On.HeroController.orig_Attack orig, HeroController self, AttackDirection attackDir)
         {
+            HeroController.instance.cState.altAttack = false;
+            HeroController.instance.cState.attacking = true;
+
+            // Damage Controller //////////////////////////////////////////////////////////////////////////
+            // NAIL
+            HeroController.instance.playerData.nailDamage =
+                1 + (HeroController.instance.playerData.nailSmithUpgrades * 2);
+            if (HeroController.instance.playerData.equippedCharm_13) // Mark of Pride
             {
-                HeroController.instance.cState.altAttack = false;
-                HeroController.instance.cState.attacking = true;
+                HeroController.instance.playerData.CountGameCompletion();
+                HeroController.instance.playerData.nailDamage +=
+                    (int) HeroController.instance.playerData.completionPercentage / 8;
+            }
 
-                // Damage Controller //////////////////////////////////////////////////////////////////////////
-                // NAIL
-                HeroController.instance.playerData.nailDamage = 1 + (HeroController.instance.playerData.nailSmithUpgrades * 2);
-                if (HeroController.instance.playerData.equippedCharm_13) // Mark of Pride
+            PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
+            // LANCE
+            HeroController.instance.playerData.beamDamage =
+                3 + (HeroController.instance.playerData.nailSmithUpgrades * 3);
+            if (HeroController.instance.playerData.equippedCharm_35
+            ) // Radiant Jewel charm replacing Grubberfly's Elegy
+            {
+                HeroController.instance.playerData.beamDamage += 5;
+            }
+
+            if (HeroController.instance.playerData.equippedCharm_25 &&
+                HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
+            {
+                HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.MPCharge / 20;
+                HeroController.instance.TakeMP(7);
+            }
+
+            if (HeroController.instance.playerData.equippedCharm_6) // Glass Soul charm replacing Fury of Fallen
+            {
+                HeroController.instance.playerData.beamDamage +=
+                    HeroController.instance.playerData.health + HeroController.instance.playerData.healthBlue - 3;
+            }
+
+            bool critical = false;
+            if (HeroController.instance.playerData.equippedCharm_3) // Bloodsong replaces Grubsong
+            {
+                Random rnd = new Random(); // CRITICAL HIT CHARM
+                int critChance = rnd.Next(1, 101);
+                HeroController.instance.playerData.CountJournalEntries();
+                int critThreshold = 100 - (HeroController.instance.playerData.journalEntriesCompleted / 10);
+                if (critChance > Math.Min(critThreshold, 96))
                 {
-                    HeroController.instance.playerData.CountGameCompletion();
-                    HeroController.instance.playerData.nailDamage += (int)HeroController.instance.playerData.completionPercentage / 8;
+                    critical = true;
                 }
+
+                if (critical)
+                {
+                    HeroController.instance.playerData.beamDamage *= 3;
+                    HeroController.instance.shadowRingPrefab.Spawn(HeroController.instance.transform.position);
+                    GetAttr<AudioSource>(HeroController.instance, "audioSource")
+                        .PlayOneShot(HeroController.instance.nailArtChargeComplete, 1f);
+                }
+            }
+
+            int lanceDamage = HeroController.instance.playerData.beamDamage;
+            // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+            // QUICK SLASH CHARM #REEE32
+            SetAttr(HeroController.instance, "attackDuration", HeroController.instance.playerData.equippedCharm_32
+                ? HeroController.instance.ATTACK_DURATION_CH
+                : HeroController.instance.ATTACK_DURATION);
+
+            if (HeroController.instance.cState.wallSliding)
+            {
+                HeroController.instance.playerData.nailDamage =
+                    HeroController.instance.playerData.beamDamage; // fix bug
                 PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-                // LANCE
-                HeroController.instance.playerData.beamDamage = 3 + (HeroController.instance.playerData.nailSmithUpgrades * 3);
-                if (HeroController.instance.playerData.equippedCharm_35) // Radiant Jewel charm replacing Grubberfly's Elegy
-                {
-                    HeroController.instance.playerData.beamDamage += 5;
-                }
-                if (HeroController.instance.playerData.equippedCharm_25 && HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
-                {
-                    HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.MPCharge / 20;
-                    HeroController.instance.TakeMP(7);
-                }
-                if (HeroController.instance.playerData.equippedCharm_6) // Glass Soul charm replacing Fury of Fallen
-                {
-                    HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.health + HeroController.instance.playerData.healthBlue - 3;
-                }
+                HeroController.instance.playerData.beamDamage = lanceDamage;
 
-                bool critical = false;
-                if (HeroController.instance.playerData.equippedCharm_3) // Bloodsong replaces Grubsong
+                SetAttr(HeroController.instance, "wallSlashing", true);
+                if (HeroController.instance.cState.facingRight)
                 {
-                    Random rnd = new Random(); // CRITICAL HIT CHARM
-                    int critChance = rnd.Next(1, 101);
-                    HeroController.instance.playerData.CountJournalEntries();
-                    int critThreshold = 100 - (HeroController.instance.playerData.journalEntriesCompleted / 10);
-                    if (critChance > Math.Min(critThreshold, 96))
-                    {
-                        critical = true;
-                    }
-                    if (critical)
-                    {
-                        HeroController.instance.playerData.beamDamage *= 3;
-                        HeroController.instance.shadowRingPrefab.Spawn(HeroController.instance.transform.position);
-                        GetAttr<AudioSource>(HeroController.instance, "audioSource").PlayOneShot(HeroController.instance.nailArtChargeComplete, 1f);
-                    }
-                }
-
-                int lanceDamage = HeroController.instance.playerData.beamDamage;
-                // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-                // QUICK SLASH CHARM #32
-                SetAttr(HeroController.instance, "attackDuration", HeroController.instance.playerData.equippedCharm_32
-                    ? HeroController.instance.ATTACK_DURATION_CH
-                    : HeroController.instance.ATTACK_DURATION);
-
-                if (HeroController.instance.cState.wallSliding)
-                {
-                    HeroController.instance.playerData.nailDamage = HeroController.instance.playerData.beamDamage; // fix bug
-                    PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-                    HeroController.instance.playerData.beamDamage = lanceDamage;
-
-                    SetAttr(HeroController.instance, "wallSlashing", true);
-                    if (HeroController.instance.cState.facingRight)
-                    {
-                        GrubberFlyBeam = critical
-                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController.instance.transform
-                                .position)
-                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
-                                .position);
-                        GrubberFlyBeam.transform.SetScaleX(1f);
-                        GrubberFlyBeam.transform.SetScaleY(1f);
-                    }
-                    else
-                    {
-                        GrubberFlyBeam = critical
-                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController.instance.transform
-                                .position)
-                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
-                                .position);
-                        GrubberFlyBeam.transform.SetScaleX(-1f);
-                        GrubberFlyBeam.transform.SetScaleY(1f);
-                    }
+                    GrubberFlyBeam = critical
+                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController.instance.transform
+                            .position)
+                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
+                            .position);
+                    GrubberFlyBeam.transform.SetScaleX(1f);
+                    GrubberFlyBeam.transform.SetScaleY(1f);
                 }
                 else
                 {
-                    SetAttr(HeroController.instance, "wallSlashing", false);
-                    switch (attackDir)
-                    {
-                        case AttackDirection.normal:
-                            HeroController.instance.playerData.nailDamage = HeroController.instance.playerData.beamDamage; // fix bug
-                            PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-                            HeroController.instance.playerData.beamDamage = lanceDamage;
+                    GrubberFlyBeam = critical
+                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController.instance.transform
+                            .position)
+                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
+                            .position);
+                    GrubberFlyBeam.transform.SetScaleX(-1f);
+                    GrubberFlyBeam.transform.SetScaleY(1f);
+                }
+            }
+            else
+            {
+                SetAttr(HeroController.instance, "wallSlashing", false);
+                switch (attackDir)
+                {
+                    case AttackDirection.normal:
+                        HeroController.instance.playerData.nailDamage =
+                            HeroController.instance.playerData.beamDamage; // fix bug
+                        PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
+                        HeroController.instance.playerData.beamDamage = lanceDamage;
 
-                            SetAttr(HeroController.instance, "slashComponent", HeroController.instance.normalSlash);
-                            SetAttr(HeroController.instance, "slashFsm", HeroController.instance.normalSlashFsm);
-                            GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables.GetFsmFloat("direction").Value = HeroController.instance.cState.facingRight
-                                ? 0f
-                                : 180f;
-                            GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
+                        SetAttr(HeroController.instance, "slashComponent", HeroController.instance.normalSlash);
+                        SetAttr(HeroController.instance, "slashFsm", HeroController.instance.normalSlashFsm);
+                        GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables
+                            .GetFsmFloat("direction").Value = HeroController.instance.cState.facingRight
+                            ? 0f
+                            : 180f;
+                        GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
 
-                            if (HeroController.instance.playerData.equippedCharm_19)
+                        if (HeroController.instance.playerData.equippedCharm_19)
+                        {
+                            if (HeroController.instance.playerData.MPCharge > 10)
                             {
-                                if (HeroController.instance.playerData.MPCharge > 10)
+                                if (!critical)
                                 {
-                                    if (!critical)
-                                    {
-                                        HeroController.instance.TakeMP(10);
-                                    }
-                                    if (HeroController.instance.playerData.equippedCharm_4)
-                                    {
-                                        HeroController.instance.spell1Prefab.Spawn(HeroController.instance.transform.position + new Vector3(0f, .6f, 0f));
-                                    }
-                                    else
-                                    {
-                                        HeroController.instance.spell1Prefab.Spawn(HeroController.instance.transform.position + new Vector3(0f, .3f, 0f));
-                                    }
+                                    HeroController.instance.TakeMP(10);
+                                }
+
+                                if (HeroController.instance.playerData.equippedCharm_4)
+                                {
+                                    HeroController.instance.spell1Prefab.Spawn(
+                                        HeroController.instance.transform.position + new Vector3(0f, .6f, 0f));
                                 }
                                 else
                                 {
-                                    GetAttr<AudioSource>(HeroController.instance, "audioSource").PlayOneShot(HeroController.instance.blockerImpact, 1f);
+                                    HeroController.instance.spell1Prefab.Spawn(
+                                        HeroController.instance.transform.position + new Vector3(0f, .3f, 0f));
                                 }
                             }
                             else
                             {
-                                if (HeroController.instance.playerData.equippedCharm_35) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Grubberfly's Elegy
+                                GetAttr<AudioSource>(HeroController.instance, "audioSource")
+                                    .PlayOneShot(HeroController.instance.blockerImpact, 1f);
+                            }
+                        }
+                        else
+                        {
+                            if (HeroController.instance.playerData.equippedCharm_35
+                            ) /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Grubberfly's Elegy
+                            {
+                                if (HeroController.instance.playerData.equippedCharm_20 &&
+                                    HeroController.instance.playerData.equippedCharm_18
+                                ) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Longnail AND Soul Catcher
                                 {
-                                    if (HeroController.instance.playerData.equippedCharm_20 && HeroController.instance.playerData.equippedCharm_18) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Longnail AND Soul Catcher
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() - 0f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
                                     {
-                                        GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0f);
-                                        if (HeroController.instance.playerData.equippedCharm_4)
-                                        {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                        }
-
-                                        GrubberFlyBeam.transform.SetScaleX(1.5f);
-                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
-
-                                        GrubberFlyBeam = critical ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController.instance.transform.position) : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
-                                        if (HeroController.instance.playerData.equippedCharm_4)
-                                        {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.9f);
-                                        }
-
-                                        GrubberFlyBeam.transform.SetScaleX(1.5f);
-                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
-
-                                        GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0f);
-                                        if (HeroController.instance.playerData.equippedCharm_4)
-                                        {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                        }
-
-                                        GrubberFlyBeam.transform.SetScaleX(-1.5f);
-                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
-
-                                        GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
-                                        if (HeroController.instance.playerData.equippedCharm_4)
-                                        {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.9f);
-                                        }
-
-                                        GrubberFlyBeam.transform.SetScaleX(-1.5f);
-                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.2f);
                                     }
-                                    else if (HeroController.instance.playerData.equippedCharm_20) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Soul Catcher
+
+                                    GrubberFlyBeam.transform.SetScaleX(1.5f);
+                                    GrubberFlyBeam.transform.SetScaleY(1.5f);
+
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                            .instance.transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.7f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
                                     {
-                                        if (HeroController.instance.cState.facingRight) // attack rightwards with charm 20
-                                        {
-                                            GrubberFlyBeam = critical
-                                                ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                    .instance.transform.position)
-                                                : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
-                                                    .instance.transform.position);
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                            }
-                                            GrubberFlyBeam.transform.SetScaleX(-1.5f);
-                                            GrubberFlyBeam.transform.SetScaleY(1.5f);
-
-                                            GrubberFlyBeam = critical ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController.instance.transform.position) : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform.position);
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.9f);
-                                            }
-                                            GrubberFlyBeam.transform.SetScaleX(-1.5f);
-                                            GrubberFlyBeam.transform.SetScaleY(1.5f);
-
-                                            HeroController.instance.RecoilLeftLong();
-                                        }
-                                        else // attack leftwards with charm 20
-                                        {
-                                            GrubberFlyBeam = critical
-                                                ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
-                                                    .instance.transform.position)
-                                                : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
-                                                    .instance.transform.position);
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                            }
-                                            GrubberFlyBeam.transform.SetScaleX(1.5f);
-                                            GrubberFlyBeam.transform.SetScaleY(1.5f);
-
-                                            GrubberFlyBeam = critical ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController.instance.transform.position) : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform.position);
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.9f);
-                                            }
-                                            GrubberFlyBeam.transform.SetScaleX(1.5f);
-                                            GrubberFlyBeam.transform.SetScaleY(1.5f);
-
-                                            HeroController.instance.RecoilRightLong();
-                                        }
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.9f);
                                     }
-                                    else if (HeroController.instance.playerData.equippedCharm_18) // ///////////////////////// Longnail aka Silent Divide
+
+                                    GrubberFlyBeam.transform.SetScaleX(1.5f);
+                                    GrubberFlyBeam.transform.SetScaleY(1.5f);
+
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() - 0f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
                                     {
-                                        GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.1f);
-                                        if (HeroController.instance.playerData.equippedCharm_4)
-                                        {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                        }
-                                        GrubberFlyBeam.transform.SetScaleX(1.5f);
-                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
-                                        GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.1f);
-                                        if (HeroController.instance.playerData.equippedCharm_4)
-                                        {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                        }
-                                        GrubberFlyBeam.transform.SetScaleX(-1.5f);
-                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.2f);
                                     }
-                                    else
+
+                                    GrubberFlyBeam.transform.SetScaleX(-1.5f);
+                                    GrubberFlyBeam.transform.SetScaleY(1.5f);
+
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.7f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
                                     {
-                                        if (HeroController.instance.cState.facingRight)
-                                        {
-                                            GrubberFlyBeam = critical
-                                                ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                    .instance.transform.position)
-                                                : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
-                                                    .instance.transform.position);
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.1f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                            }
-                                            GrubberFlyBeam.transform.SetScaleX(-1.5f);
-                                            GrubberFlyBeam.transform.SetScaleY(1.5f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                HeroController.instance.RecoilLeftLong();
-                                            }
-                                            else
-                                            {
-                                                HeroController.instance.RecoilLeft();
-                                            }
-                                        }
-                                        else
-                                        {
-                                            GrubberFlyBeam = critical
-                                                ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
-                                                    .instance.transform.position)
-                                                : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
-                                                    .instance.transform.position);
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.1f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.2f);
-                                            }
-                                            GrubberFlyBeam.transform.SetScaleX(1.5f);
-                                            GrubberFlyBeam.transform.SetScaleY(1.5f);
-                                            if (HeroController.instance.playerData.equippedCharm_4)
-                                            {
-                                                HeroController.instance.RecoilRightLong();
-                                            }
-                                            else
-                                            {
-                                                HeroController.instance.RecoilRight();
-                                            }
-                                        }
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.9f);
                                     }
+
+                                    GrubberFlyBeam.transform.SetScaleX(-1.5f);
+                                    GrubberFlyBeam.transform.SetScaleY(1.5f);
                                 }
-                                else if (HeroController.instance.playerData.equippedCharm_20 && HeroController.instance.playerData.equippedCharm_18) // ///////////////////////////////////////////////////////////////////////////////////////////////////////////// Longnail AND Soul Catcher
+                                else if (HeroController.instance.playerData.equippedCharm_20
+                                ) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Soul Catcher
                                 {
-                                    GrubberFlyBeam = critical
-                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController.instance
-                                            .transform.position)
-                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
-                                            .transform.position);
-                                    GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.4f);
-                                    if (HeroController.instance.playerData.equippedCharm_4)
-                                    {
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.2f);
-                                    }
-
-                                    GrubberFlyBeam.transform.SetScaleX(1f);
-                                    GrubberFlyBeam.transform.SetScaleY(1f);
-
-                                    GrubberFlyBeam = critical
-                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController.instance
-                                            .transform.position)
-                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
-                                            .transform.position);
-                                    GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.5f);
-                                    if (HeroController.instance.playerData.equippedCharm_4)
-                                    {
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
-                                    }
-
-                                    GrubberFlyBeam.transform.SetScaleX(1f);
-                                    GrubberFlyBeam.transform.SetScaleY(1f);
-
-                                    GrubberFlyBeam = critical ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController.instance.transform.position) : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform.position);
-                                    GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.4f);
-                                    if (HeroController.instance.playerData.equippedCharm_4)
-                                    {
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.2f);
-                                    }
-
-                                    GrubberFlyBeam.transform.SetScaleX(-1f);
-                                    GrubberFlyBeam.transform.SetScaleY(1f);
-
-                                    GrubberFlyBeam = critical
-                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController.instance
-                                            .transform.position)
-                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
-                                            .transform.position);
-                                    GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.5f);
-                                    if (HeroController.instance.playerData.equippedCharm_4)
-                                    {
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
-                                    }
-
-                                    GrubberFlyBeam.transform.SetScaleX(-1f);
-                                    GrubberFlyBeam.transform.SetScaleY(1f);
-                                }
-                                else if (HeroController.instance.playerData.equippedCharm_20) // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Soul Catcher
-                                {
-                                    if (HeroController.instance.cState.facingRight) // attack rightwards with charm 20
+                                    if (HeroController.instance.cState.facingRight
+                                    ) // attack rightwards with charm 20
                                     {
                                         GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.4f);
+                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(
+                                                HeroController
+                                                    .instance.transform.position)
+                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                                .instance.transform.position);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() - 0f);
                                         if (HeroController.instance.playerData.equippedCharm_4)
                                         {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.2f);
+                                            GrubberFlyBeam.transform.SetPositionY(
+                                                HeroController.instance.transform.GetPositionY() + 0.2f);
                                         }
-                                        GrubberFlyBeam.transform.SetScaleX(-1f);
-                                        GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                        GrubberFlyBeam.transform.SetScaleX(-1.5f);
+                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
 
                                         GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.5f);
+                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(
+                                                HeroController.instance.transform.position)
+                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                                .instance.transform.position);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.7f);
                                         if (HeroController.instance.playerData.equippedCharm_4)
                                         {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
+                                            GrubberFlyBeam.transform.SetPositionY(
+                                                HeroController.instance.transform.GetPositionY() + 0.9f);
                                         }
-                                        GrubberFlyBeam.transform.SetScaleX(-1f);
-                                        GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                        GrubberFlyBeam.transform.SetScaleX(-1.5f);
+                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
+
+                                        HeroController.instance.RecoilLeftLong();
                                     }
                                     else // attack leftwards with charm 20
                                     {
                                         GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.4f);
+                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(
+                                                HeroController
+                                                    .instance.transform.position)
+                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                                .instance.transform.position);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() - 0f);
                                         if (HeroController.instance.playerData.equippedCharm_4)
                                         {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.2f);
+                                            GrubberFlyBeam.transform.SetPositionY(
+                                                HeroController.instance.transform.GetPositionY() + 0.2f);
                                         }
-                                        GrubberFlyBeam.transform.SetScaleX(1f);
-                                        GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                        GrubberFlyBeam.transform.SetScaleX(1.5f);
+                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
 
                                         GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.5f);
+                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(
+                                                HeroController.instance.transform.position)
+                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                                .instance.transform.position);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.7f);
                                         if (HeroController.instance.playerData.equippedCharm_4)
                                         {
-                                            GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() + 0.7f);
+                                            GrubberFlyBeam.transform.SetPositionY(
+                                                HeroController.instance.transform.GetPositionY() + 0.9f);
                                         }
-                                        GrubberFlyBeam.transform.SetScaleX(1f);
-                                        GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                        GrubberFlyBeam.transform.SetScaleX(1.5f);
+                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
+
+                                        HeroController.instance.RecoilRightLong();
                                     }
                                 }
-                                else if (HeroController.instance.playerData.equippedCharm_18) // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Longnail
+                                else if (HeroController.instance.playerData.equippedCharm_18
+                                ) // ///////////////////////// Longnail aka Silent Divide
                                 {
                                     GrubberFlyBeam = critical
-                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController.instance
-                                            .transform.position)
-                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
+                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                            .instance
                                             .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.1f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
+                                    {
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.2f);
+                                    }
+
+                                    GrubberFlyBeam.transform.SetScaleX(1.5f);
+                                    GrubberFlyBeam.transform.SetScaleY(1.5f);
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.1f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
+                                    {
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.2f);
+                                    }
+
+                                    GrubberFlyBeam.transform.SetScaleX(-1.5f);
+                                    GrubberFlyBeam.transform.SetScaleY(1.5f);
+                                }
+                                else
+                                {
+                                    if (HeroController.instance.cState.facingRight)
+                                    {
+                                        GrubberFlyBeam = critical
+                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(
+                                                HeroController
+                                                    .instance.transform.position)
+                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                                .instance.transform.position);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.1f);
+                                        if (HeroController.instance.playerData.equippedCharm_4)
+                                        {
+                                            GrubberFlyBeam.transform.SetPositionY(
+                                                HeroController.instance.transform.GetPositionY() + 0.2f);
+                                        }
+
+                                        GrubberFlyBeam.transform.SetScaleX(-1.5f);
+                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
+                                        if (HeroController.instance.playerData.equippedCharm_4)
+                                        {
+                                            HeroController.instance.RecoilLeftLong();
+                                        }
+                                        else
+                                        {
+                                            HeroController.instance.RecoilLeft();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        GrubberFlyBeam = critical
+                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(
+                                                HeroController
+                                                    .instance.transform.position)
+                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                                .instance.transform.position);
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.1f);
+                                        if (HeroController.instance.playerData.equippedCharm_4)
+                                        {
+                                            GrubberFlyBeam.transform.SetPositionY(
+                                                HeroController.instance.transform.GetPositionY() + 0.2f);
+                                        }
+
+                                        GrubberFlyBeam.transform.SetScaleX(1.5f);
+                                        GrubberFlyBeam.transform.SetScaleY(1.5f);
+                                        if (HeroController.instance.playerData.equippedCharm_4)
+                                        {
+                                            HeroController.instance.RecoilRightLong();
+                                        }
+                                        else
+                                        {
+                                            HeroController.instance.RecoilRight();
+                                        }
+                                    }
+                                }
+                            }
+                            else if (HeroController.instance.playerData.equippedCharm_20 &&
+                                     HeroController.instance.playerData.equippedCharm_18
+                            ) // ///////////////////////////////////////////////////////////////////////////////////////////////////////////// Longnail AND Soul Catcher
+                            {
+                                GrubberFlyBeam = critical
+                                    ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                        .instance
+                                        .transform.position)
+                                    : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
+                                        .transform.position);
+                                GrubberFlyBeam.transform.SetPositionY(
+                                    HeroController.instance.transform.GetPositionY() - 0.4f);
+                                if (HeroController.instance.playerData.equippedCharm_4)
+                                {
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() - 0.2f);
+                                }
+
+                                GrubberFlyBeam.transform.SetScaleX(1f);
+                                GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                GrubberFlyBeam = critical
+                                    ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                        .instance
+                                        .transform.position)
+                                    : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
+                                        .transform.position);
+                                GrubberFlyBeam.transform.SetPositionY(
+                                    HeroController.instance.transform.GetPositionY() + 0.5f);
+                                if (HeroController.instance.playerData.equippedCharm_4)
+                                {
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.7f);
+                                }
+
+                                GrubberFlyBeam.transform.SetScaleX(1f);
+                                GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                GrubberFlyBeam = critical
+                                    ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                        .instance.transform.position)
+                                    : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
+                                        .transform.position);
+                                GrubberFlyBeam.transform.SetPositionY(
+                                    HeroController.instance.transform.GetPositionY() - 0.4f);
+                                if (HeroController.instance.playerData.equippedCharm_4)
+                                {
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() - 0.2f);
+                                }
+
+                                GrubberFlyBeam.transform.SetScaleX(-1f);
+                                GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                GrubberFlyBeam = critical
+                                    ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                        .instance
+                                        .transform.position)
+                                    : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
+                                        .transform.position);
+                                GrubberFlyBeam.transform.SetPositionY(
+                                    HeroController.instance.transform.GetPositionY() + 0.5f);
+                                if (HeroController.instance.playerData.equippedCharm_4)
+                                {
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.7f);
+                                }
+
+                                GrubberFlyBeam.transform.SetScaleX(-1f);
+                                GrubberFlyBeam.transform.SetScaleY(1f);
+                            }
+                            else if (HeroController.instance.playerData.equippedCharm_20
+                            ) // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Soul Catcher
+                            {
+                                if (HeroController.instance.cState.facingRight) // attack rightwards with charm 20
+                                {
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() - 0.4f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
+                                    {
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() - 0.2f);
+                                    }
+
+                                    GrubberFlyBeam.transform.SetScaleX(-1f);
+                                    GrubberFlyBeam.transform.SetScaleY(1f);
+
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.5f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
+                                    {
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.7f);
+                                    }
+
+                                    GrubberFlyBeam.transform.SetScaleX(-1f);
+                                    GrubberFlyBeam.transform.SetScaleY(1f);
+                                }
+                                else // attack leftwards with charm 20
+                                {
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() - 0.4f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
+                                    {
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() - 0.2f);
+                                    }
+
                                     GrubberFlyBeam.transform.SetScaleX(1f);
                                     GrubberFlyBeam.transform.SetScaleY(1f);
+
                                     GrubberFlyBeam = critical
-                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController.instance
-                                            .transform.position)
-                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
+                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetPositionY(
+                                        HeroController.instance.transform.GetPositionY() + 0.5f);
+                                    if (HeroController.instance.playerData.equippedCharm_4)
+                                    {
+                                        GrubberFlyBeam.transform.SetPositionY(
+                                            HeroController.instance.transform.GetPositionY() + 0.7f);
+                                    }
+
+                                    GrubberFlyBeam.transform.SetScaleX(1f);
+                                    GrubberFlyBeam.transform.SetScaleY(1f);
+                                }
+                            }
+                            else if (HeroController.instance.playerData.equippedCharm_18
+                            ) // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Longnail
+                            {
+                                GrubberFlyBeam = critical
+                                    ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                        .instance
+                                        .transform.position)
+                                    : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
+                                        .transform.position);
+                                GrubberFlyBeam.transform.SetScaleX(1f);
+                                GrubberFlyBeam.transform.SetScaleY(1f);
+                                GrubberFlyBeam = critical
+                                    ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                        .instance
+                                        .transform.position)
+                                    : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
+                                        .transform.position);
+                                GrubberFlyBeam.transform.SetScaleX(-1f);
+                                GrubberFlyBeam.transform.SetScaleY(1f);
+                            }
+                            else // player has no charms
+                            {
+                                if (HeroController.instance.cState.facingRight) // attack rightwards
+                                {
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController
+                                            .instance
                                             .transform.position);
                                     GrubberFlyBeam.transform.SetScaleX(-1f);
                                     GrubberFlyBeam.transform.SetScaleY(1f);
                                 }
-                                else // player has no charms
+                                else // attack leftwards
                                 {
-                                    if (HeroController.instance.cState.facingRight) // attack rightwards
-                                    {
-                                        GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabR_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetScaleX(-1f);
-                                        GrubberFlyBeam.transform.SetScaleY(1f);
-                                    }
-                                    else // attack leftwards
-                                    {
-                                        GrubberFlyBeam = critical
-                                            ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
-                                                .instance.transform.position)
-                                            : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance
-                                                .transform.position);
-                                        GrubberFlyBeam.transform.SetScaleX(1f);
-                                        GrubberFlyBeam.transform.SetScaleY(1f);
-                                    }
+                                    GrubberFlyBeam = critical
+                                        ? HeroController.instance.grubberFlyBeamPrefabL_fury.Spawn(HeroController
+                                            .instance.transform.position)
+                                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController
+                                            .instance
+                                            .transform.position);
+                                    GrubberFlyBeam.transform.SetScaleX(1f);
+                                    GrubberFlyBeam.transform.SetScaleY(1f);
                                 }
                             }
+                        }
 
-                            break;
-                        // attack upwards
-                        case AttackDirection.upward:
-                            // Timescale Charm #14
-                            if (HeroController.instance.playerData.equippedCharm_14 && _timefracture < 2f)
-                            {
-                                _timefracture += 0.1f;
-                                SpriteFlash.flash(Color.white, 0.85f, 0.35f, 0f, 0.35f);
-                            }
+                        break;
+                    // attack upwards
+                    case AttackDirection.upward:
+                        // Timescale Charm #14
+                        if (HeroController.instance.playerData.equippedCharm_14 && _timefracture < 2f)
+                        {
+                            _timefracture += 0.1f;
+                            SpriteFlash.flash(Color.white, 0.85f, 0.35f, 0f, 0.35f);
+                        }
 
-                            // UP ATTACK CHARM 8 - RISING LIGHT//
-                            if (HeroController.instance.playerData.equippedCharm_8)
-                            {
-                                HeroController.instance.playerData.nailDamage = HeroController.instance.playerData.beamDamage; // fix bug
-                                PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-                                HeroController.instance.playerData.beamDamage = lanceDamage;
+                        // UP ATTACK CHARM 8 - RISING LIGHT//
+                        if (HeroController.instance.playerData.equippedCharm_8)
+                        {
+                            HeroController.instance.playerData.nailDamage =
+                                HeroController.instance.playerData.beamDamage; // fix bug
+                            PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
+                            HeroController.instance.playerData.beamDamage = lanceDamage;
 
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + 0.5f);
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + 0.85f);
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + 1.2f);
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + 1.55f);
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + 0.15f);
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() - 0.2f);
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() - 0.55f);
-                                GrubberFlyBeam = critical
-                                    ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
-                                        .transform.position)
-                                    : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance.transform
-                                        .position);
-                                GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                                GrubberFlyBeam.transform.SetScaleX(0.6f);
-                                GrubberFlyBeam.transform.SetScaleY(0.6f);
-                                GrubberFlyBeam.transform.SetPositionX(
-                                    HeroController.instance.transform.GetPositionX() - 0.9f);
-                            }
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() + 0.5f);
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() + 0.85f);
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() + 1.2f);
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() + 1.55f);
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() + 0.15f);
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() - 0.2f);
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() - 0.55f);
+                            GrubberFlyBeam = critical
+                                ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
+                                    .transform.position)
+                                : HeroController.instance.grubberFlyBeamPrefabU.Spawn(HeroController.instance
+                                    .transform
+                                    .position);
+                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
+                            GrubberFlyBeam.transform.SetScaleX(0.6f);
+                            GrubberFlyBeam.transform.SetScaleY(0.6f);
+                            GrubberFlyBeam.transform.SetPositionX(
+                                HeroController.instance.transform.GetPositionX() - 0.9f);
+                        }
 
-                            SetAttr(HeroController.instance, "slashComponent", HeroController.instance.upSlash);
-                            SetAttr(HeroController.instance, "slashFsm", HeroController.instance.upSlashFsm);
-                            HeroController.instance.cState.upAttacking = true;
-                            GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables.GetFsmFloat("direction").Value = 90f;
-                            GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
-                            break;
-                        // attack downwards
-                        case AttackDirection.downward:
-                            SetAttr(HeroController.instance, "slashComponent", HeroController.instance.downSlash);
-                            SetAttr(HeroController.instance, "slashFsm", HeroController.instance.downSlashFsm);
-                            HeroController.instance.cState.downAttacking = true;
-                            GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables.GetFsmFloat("direction").Value = 270f;
-                            GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
-                            break;
-                    }
+                        SetAttr(HeroController.instance, "slashComponent", HeroController.instance.upSlash);
+                        SetAttr(HeroController.instance, "slashFsm", HeroController.instance.upSlashFsm);
+                        HeroController.instance.cState.upAttacking = true;
+                        GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables
+                            .GetFsmFloat("direction").Value = 90f;
+                        GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
+                        break;
+                    // attack downwards
+                    case AttackDirection.downward:
+                        SetAttr(HeroController.instance, "slashComponent", HeroController.instance.downSlash);
+                        SetAttr(HeroController.instance, "slashFsm", HeroController.instance.downSlashFsm);
+                        HeroController.instance.cState.downAttacking = true;
+                        GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables
+                            .GetFsmFloat("direction").Value = 270f;
+                        GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
+                        break;
                 }
+            }
 
-                if (HeroController.instance.playerData.equippedCharm_38)
-                {
-                    HeroController.instance.fsm_orbitShield.SendEvent("SLASH");
-                }
+            if (HeroController.instance.playerData.equippedCharm_38)
+            {
+                HeroController.instance.fsm_orbitShield.SendEvent("SLASH");
             }
         }
 
@@ -753,8 +1019,9 @@ namespace Lightbringer
             if (PlayerData.instance.equippedCharm_13) // Mark of Pride
             {
                 PlayerData.instance.CountGameCompletion();
-                PlayerData.instance.nailDamage += (int)PlayerData.instance.completionPercentage / 6;
+                PlayerData.instance.nailDamage += (int) PlayerData.instance.completionPercentage / 6;
             }
+
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
         }
 
@@ -771,14 +1038,17 @@ namespace Lightbringer
             if (HeroController.instance.vertical_input > Mathf.Epsilon)
             {
                 HeroController.instance.Attack(AttackDirection.upward);
-                HeroController.instance.StartCoroutine(HeroController.instance.CheckForTerrainThunk(AttackDirection.upward));
+                HeroController.instance.StartCoroutine(
+                    HeroController.instance.CheckForTerrainThunk(AttackDirection.upward));
             }
             else if (HeroController.instance.vertical_input < -Mathf.Epsilon)
             {
-                if (HeroController.instance.hero_state != ActorStates.idle && HeroController.instance.hero_state != ActorStates.running)
+                if (HeroController.instance.hero_state != ActorStates.idle &&
+                    HeroController.instance.hero_state != ActorStates.running)
                 {
                     HeroController.instance.Attack(AttackDirection.downward);
-                    HeroController.instance.StartCoroutine(HeroController.instance.CheckForTerrainThunk(AttackDirection.downward));
+                    HeroController.instance.StartCoroutine(
+                        HeroController.instance.CheckForTerrainThunk(AttackDirection.downward));
                 }
                 else
                 {
@@ -797,7 +1067,8 @@ namespace Lightbringer
             float panicSpeed = 1f;
             if (HeroController.instance.playerData.equippedCharm_2)
             {
-                int missingHealth = HeroController.instance.playerData.maxHealth - HeroController.instance.playerData.health;
+                int missingHealth = HeroController.instance.playerData.maxHealth -
+                                    HeroController.instance.playerData.health;
                 // ReSharper disable once RedundantAssignment
                 panicSpeed += missingHealth * .03f;
             }
@@ -805,95 +1076,85 @@ namespace Lightbringer
             orig(self, moveDirection);
         }
 
-        // ReSharper disable once UnusedMember.Local
-        // ReSharper disable twice UnusedParameter.Local
+
+        private Text _textObj;
+        private GameObject _canvas;
+
         // Unused private types or members should be removed
-        private void SceneChanged(Scene arg0, Scene arg1)
+
+        private void SceneLoadedHook(Scene arg0, LoadSceneMode lsm)
         {
-            Inter = null;
-            // nope
-            // breaks on scene entry, etc
+            // Without this your shade doesn't go away when you die.
+            if (GameManager.instance == null) return;
+            GameManager.instance.StartCoroutine(SceneLoaded(arg0, lsm));
+        }
+
+        private IEnumerator<YieldInstruction> SceneLoaded(Scene arg0, LoadSceneMode lsm)
+        {
+            yield return null;
+            yield return null;
+            _inter = null;
 
             // Text Display code
-            //if (c == null)
-            //{
-            //    c = new GameObject();
-            //    UnityEngine.Object.DontDestroyOnLoad(c);
-            //    c.AddComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
-            //    CanvasScaler canvasScaler = c.AddComponent<CanvasScaler>();
-            //    canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            //    canvasScaler.referenceResolution = new Vector2(1920f, 1080f);
-            //    c.AddComponent<GraphicRaycaster>();
-            //    GameObject gameObject = new GameObject();
-            //    gameObject.transform.parent = c.transform;
-            //    gameObject.AddComponent<CanvasRenderer>();
-            //    RectTransform rectTransform = gameObject.AddComponent<RectTransform>();
-            //    rectTransform.anchorMax = new Vector2(1f, 0f);
-            //    rectTransform.anchorMin = new Vector2(0f, 0f);
-            //    rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            //    rectTransform.sizeDelta = new Vector2(0f, 50f);
-            //    rectTransform.anchoredPosition = new Vector2(0f, 45f);
-            //    textObj = gameObject.AddComponent<Text>();
-            //    textObj.font = Modding.CanvasUtil.TrajanBold;
-            //    textObj.text = "";
-            //    textObj.fontSize = 42;
-            //    textObj.alignment = TextAnchor.MiddleCenter;
-            //}
+            if (_canvas == null)
+            {
+                CanvasUtil.CreateFonts();
+                _canvas = CanvasUtil.CreateCanvas(RenderMode.ScreenSpaceOverlay, new Vector2(1920, 1080));
+                UnityEngine.Object.DontDestroyOnLoad(_canvas);
+                GameObject gameObject =
+                    CanvasUtil.CreateTextPanel(_canvas, "", 27, TextAnchor.MiddleCenter,
+                        new CanvasUtil.RectData(
+                            new Vector2(0, 50),
+                            new Vector2(0, 45),
+                            new Vector2(0, 0),
+                            new Vector2(1, 0),
+                            new Vector2(0.5f, 0.5f)));
+                _textObj = gameObject.GetComponent<Text>();
+                _textObj.font = CanvasUtil.TrajanBold;
+                _textObj.text = "";
+                _textObj.fontSize = 42;
+            }
 
-            GameManager.instance.sceneName = GameManager.GetBaseSceneName(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+            foreach (GameObject i in _gruzMinions.Where(x => x != null))
+            {
+                UnityEngine.Object.Destroy(i);
+            }
+            if (_gruzMinion != null)
+                UnityEngine.Object.Destroy(_gruzMinion);
 
             // Empress Muzznik
             PlayerData.instance.CountGameCompletion();
-            //if (PlayerData.instance.completionPercentage > 80)
-            //{
-            //    textObj.text = "You are ready. Empress Muzznik awaits you.";
-            //    textObj.CrossFadeAlpha(1f, 0f, false);
-            //    textObj.CrossFadeAlpha(0f, 7f, false);
-            //}
-            //else if (PlayerData.instance.completionPercentage > 60)
-            //{
-            //    textObj.text = "You might just stand a chance...";
-            //    textObj.CrossFadeAlpha(1f, 0f, false);
-            //    textObj.CrossFadeAlpha(0f, 7f, false);
-            //}
-            //else
-            //{
-            //    textObj.text = "You are unworthy. Come back when you are stronger.";
-            //    textObj.CrossFadeAlpha(1f, 0f, false);
-            //    textObj.CrossFadeAlpha(0f, 7f, false);
-            //}
+            if (arg0.name != "Crossroads_04" || PlayerData.instance.killedBigFly) yield break;
+            if (PlayerData.instance.completionPercentage > 80)
+            {
+                _textObj.text = "You are ready. Empress Muzznik awaits you.";
+                _textObj.CrossFadeAlpha(1f, 0f, false);
+                _textObj.CrossFadeAlpha(0f, 7f, false);
+            }
+            else if (PlayerData.instance.completionPercentage > 60)
+            {
+                _textObj.text = "You might just stand a chance...";
+                _textObj.CrossFadeAlpha(1f, 0f, false);
+                _textObj.CrossFadeAlpha(0f, 7f, false);
+            }
+            else
+            {
+                _textObj.text = "You are unworthy. Come back when you are stronger.";
+                _textObj.CrossFadeAlpha(1f, 0f, false);
+                _textObj.CrossFadeAlpha(0f, 7f, false);
+            }
+
 
             // find and save data for Empress Muzznik
-            Gruz = GameObject.Find("Giant Fly");
-            if (Gruz != null)
-            {
-                GruzHealth = FSMUtility.LocateFSM(Gruz, "health_manager_enemy");
-                FSMUtility.SetInt(GruzHealth, "HP", 1500);
-                //gruzFight = new bool[12];
-                //gruzMinions = new GameObject[16];
-                GruzMinion = GameObject.Find("Fly");
-                GruzMinion.transform.SetScaleY(-1f);
-                FSMUtility.SetInt(FSMUtility.LocateFSM(GruzMinion, "health_manager_enemy"), "HP", 99999);
-            }
-
-            // Lost Kins
-            if (GameManager.instance.sceneName == "Dream_03_Infected_Knight")
-            {
-                // find and save data for Lost Kin
-                Kin = GameObject.Find("Lost Kin");
-                KinHealth = FSMUtility.LocateFSM(Kin, "health_manager_enemy");
-                KinFight = new bool[12];
-            }
-            Log("ur mum gayer");
         }
 
         private void SoulGain(On.HeroController.orig_SoulGain orig, HeroController self)
         {
             if (!HeroController.instance.playerData.equippedCharm_15) return;
-            HitNumber++;
-            if (HitNumber != 5) return;
+            _hitNumber++;
+            if (_hitNumber != 5) return;
             HeroController.instance.AddHealth(1);
-            HitNumber = 0;
+            _hitNumber = 0;
             SpriteFlash.flash(Color.red, 0.7f, 0.45f, 0f, 0.45f);
         }
 
@@ -921,6 +1182,7 @@ namespace Lightbringer
                 self.transform.localScale = self.scale;
                 anim.Play(self.animName);
             }
+
             if (GetAttr<bool>(self, "fury"))
             {
                 anim.Play(self.animName + " F");
@@ -954,6 +1216,7 @@ namespace Lightbringer
                     PlayerData.instance.health = 0;
                     return;
                 }
+
                 PlayerData.instance.health -= amount;
             }
         }
@@ -966,106 +1229,141 @@ namespace Lightbringer
                 HeroController.instance.playerData.ghostCoins = 0;
                 _timefracture = 1f;
             }
-            if (_timefracture > .99f && HeroController.instance.playerData.equippedCharm_14 && !HeroController.instance.cState.isPaused)
+
+            if (_timefracture > .99f && HeroController.instance.playerData.equippedCharm_14 &&
+                !HeroController.instance.cState.isPaused)
             {
                 Time.timeScale = _timefracture;
             }
 
-            if (Kin != null && PlayerData.instance.geo == 753)
+            if (_kin != null && PlayerData.instance.geo == 753)
             {
-                int kinHp = KinHealth.FsmVariables.GetFsmInt("HP").Value;
-                if (!KinFight[0] && kinHp < 400)
+                int kinHp = _kinHealth.hp;
+                if (!_kinFight[0] && kinHp < 400)
                 {
-                    KinFight[0] = true;
+                    _kinFight[0] = true;
                     HeroController.instance.playerData.isInvincible = true; // temporary invincibility iFrames
                     SpriteFlash.flash(Color.black, 0.6f, 0.15f, 0f, 0.55f);
-                    KinFight[5] = true; // iFrames
-                    KinTwo = Object.Instantiate(Kin);
-                    FSMUtility.SetInt(FSMUtility.LocateFSM(KinTwo, "health_manager_enemy"), "HP", 99999);
+                    _kinFight[5] = true; // iFrames
+                    _kinTwo = Object.Instantiate(_kin);
+                    _kinTwo.GetComponent<HealthManager>().hp = 99999;
+                    // FSMUtility.SetInt(FSMUtility.LocateFSM(KinTwo, "health_manager_enemy"), "HP", 99999);
                 }
-                else if (KinFight[5]) // iFrames
+                else if (_kinFight[5]) // iFrames
                 {
                     _invincibleTime += Time.deltaTime;
                     if (_invincibleTime >= 5.5f)
                     {
                         HeroController.instance.playerData.isInvincible = false;
-                        KinFight[5] = false;
+                        _kinFight[5] = false;
                     }
                 }
-                else if (!KinFight[1] && kinHp < 1)
+                else if (!_kinFight[1] && kinHp < 1)
                 {
-                    KinFight[1] = true;
-                    FSMUtility.SetInt(FSMUtility.LocateFSM(KinTwo, "health_manager_enemy"), "HP", 1);
+                    _kinFight[1] = true;
+                    // FSMUtility.SetInt(FSMUtility.LocateFSM(KinTwo, "health_manager_enemy"), "HP", 1);
+                    _kinTwo.GetComponent<HealthManager>().hp = 1;
+                }
+            }
+            else if (_kin == null && PlayerData.instance.geo == 753
+            ) // && GameManager.instance.sceneName == "Dream_03_Infected_Knight")
+            {
+                _kin = GameObject.Find("Lost Kin");
+                if (_kin != null)
+                {
+                    _kinHealth = _kin.GetComponent<HealthManager>();
+                    _kinFight = new bool[12];
                 }
             }
 
             // EMPRESS MUZZNIK BOSS FIGHT
-            if (Gruz != null)
+            if (_gruz == null) // && GameManager.instance.sceneName == "Crossroads_04")
             {
-                int gruzHp = GruzHealth.FsmVariables.GetFsmInt("HP").Value;
-                if (!GruzFight[0] && gruzHp < 1470)
+                _gruz = GameObject.Find("Giant Fly");
+                if (_gruz != null)
                 {
-                    GruzFight[0] = true;
-                    GruzMinions[0] = GruzMinion.Spawn(Gruz.transform.position); // dud
-                    GruzMinions[1] = GruzMinion.Spawn(Gruz.transform.position);
-                    GruzMinions[1].transform.SetScaleX(1.3f);
-                    GruzMinions[1].transform.SetScaleY(-1.3f);
+                    //if (GruzMinions.Any(x => x != null))
+                    //{
+                    //    foreach (GameObject go in GruzMinions.Where(x => x != null))
+                    //        UnityEngine.Object.Destroy(go);
+                    //}
+                    _gruzHealth = _gruz.GetComponent<HealthManager>();
+                    _gruzHealth.hp = 1500;
+                    _gruzFight = new bool[12];
+                    _gruzMinions = new GameObject[16];
+                    _gruzMinion = GameObject.Find("Fly");
+                    _gruzMinion.transform.SetScaleY(-1f);
+                    _gruzMinion.GetComponent<HealthManager>().hp = 99999;
                 }
-                else if (!GruzFight[1] && gruzHp < 1100)
+            }
+            else
+            {
+                int gruzHp = _gruzHealth.hp;
+                if (!_gruzFight[0] && gruzHp < 1470)
                 {
-                    GruzFight[1] = true;
-                    GruzMinions[2] = GruzMinion.Spawn(Gruz.transform.position);
+                    _gruzFight[0] = true;
+                    _gruzMinions[0] = _gruzMinion.Spawn(_gruz.transform.position); // dud
+                    _gruzMinions[1] = _gruzMinion.Spawn(_gruz.transform.position);
+                    _gruzMinions[1].transform.SetScaleX(1.3f);
+                    _gruzMinions[1].transform.SetScaleY(-1.3f);
                 }
-                else if (!GruzFight[2] && gruzHp < 800)
+                else if (!_gruzFight[1] && gruzHp < 1100)
                 {
-                    GruzFight[2] = true;
-                    GruzMinions[3] = GruzMinion.Spawn(Gruz.transform.position);
-                    GruzMinions[3].transform.SetScaleX(.8f);
-                    GruzMinions[3].transform.SetScaleY(-.8f);
+                    _gruzFight[1] = true;
+                    _gruzMinions[2] = _gruzMinion.Spawn(_gruz.transform.position);
                 }
-                else if (!GruzFight[3] && gruzHp < 600)
+                else if (!_gruzFight[2] && gruzHp < 800)
                 {
-                    GruzFight[3] = true;
-                    GruzMinions[4] = GruzMinion.Spawn(Gruz.transform.position);
-                    GruzMinions[4].transform.SetScaleX(.8f);
-                    GruzMinions[4].transform.SetScaleY(-.8f);
+                    _gruzFight[2] = true;
+                    _gruzMinions[3] = _gruzMinion.Spawn(_gruz.transform.position);
+                    _gruzMinions[3].transform.SetScaleX(.8f);
+                    _gruzMinions[3].transform.SetScaleY(-.8f);
                 }
-                else if (!GruzFight[4] && gruzHp < 500)
+                else if (!_gruzFight[3] && gruzHp < 600)
                 {
-                    GruzFight[4] = true;
-                    GruzMinions[5] = GruzMinion.Spawn(Gruz.transform.position);
+                    _gruzFight[3] = true;
+                    _gruzMinions[4] = _gruzMinion.Spawn(_gruz.transform.position);
+                    _gruzMinions[4].transform.SetScaleX(.8f);
+                    _gruzMinions[4].transform.SetScaleY(-.8f);
                 }
-                else if (!GruzFight[5] && gruzHp < 400)
+                else if (!_gruzFight[4] && gruzHp < 500)
                 {
-                    GruzFight[5] = true;
-                    GruzMinions[6] = GruzMinion.Spawn(Gruz.transform.position);
+                    _gruzFight[4] = true;
+                    _gruzMinions[5] = _gruzMinion.Spawn(_gruz.transform.position);
                 }
-                else if (!GruzFight[6] && gruzHp < 300)
+                else if (!_gruzFight[5] && gruzHp < 400)
                 {
-                    GruzFight[6] = true;
-                    GruzMinions[7] = GruzMinion.Spawn(Gruz.transform.position);
+                    _gruzFight[5] = true;
+                    _gruzMinions[6] = _gruzMinion.Spawn(_gruz.transform.position);
                 }
-                else if (!GruzFight[7] && gruzHp < 200)
+                else if (!_gruzFight[6] && gruzHp < 300)
                 {
-                    GruzFight[7] = true;
-                    GruzMinions[8] = GruzMinion.Spawn(Gruz.transform.position);
-                    GruzMinions[9] = GruzMinion.Spawn(Gruz.transform.position);
+                    _gruzFight[6] = true;
+                    _gruzMinions[7] = _gruzMinion.Spawn(_gruz.transform.position);
                 }
-                else if (!GruzFight[8] && gruzHp < 100)
+                else if (!_gruzFight[7] && gruzHp < 200)
                 {
-                    GruzFight[8] = true;
-                    GruzMinions[10] = GruzMinion.Spawn(Gruz.transform.position);
-                    GruzMinions[11] = GruzMinion.Spawn(Gruz.transform.position);
+                    _gruzFight[7] = true;
+                    _gruzMinions[8] = _gruzMinion.Spawn(_gruz.transform.position);
+                    _gruzMinions[9] = _gruzMinion.Spawn(_gruz.transform.position);
                 }
-                else if (!GruzFight[9] && gruzHp < 1)
+                else if (!_gruzFight[8] && gruzHp < 100)
                 {
-                    GruzFight[9] = true;
-                    FSMUtility.SetInt(FSMUtility.LocateFSM(GruzMinion, "health_manager_enemy"), "HP", 1);
+                    _gruzFight[8] = true;
+                    _gruzMinions[10] = _gruzMinion.Spawn(_gruz.transform.position);
+                    _gruzMinions[11] = _gruzMinion.Spawn(_gruz.transform.position);
+                }
+                else if (!_gruzFight[9] && gruzHp < 1)
+                {
+                    _gruzFight[9] = true;
+                    _gruzMinion.GetComponent<HealthManager>().hp = 1;
+                    //FSMUtility.SetInt(FSMUtility.LocateFSM(GruzMinion, "health_manager_enemy"), "HP", 1);
                     for (int i = 0; i < 12; i++)
                     {
-                        FSMUtility.SetInt(FSMUtility.LocateFSM(GruzMinions[i], "health_manager_enemy"), "HP", 1);
+                        _gruzMinions[i].GetComponent<HealthManager>().hp = 1;
                     }
-                    Gruz = null;
+
+                    _gruz = null;
                 }
             }
 
@@ -1079,27 +1377,34 @@ namespace Lightbringer
                 {
                     HeroController.instance.AddMPChargeSpa(1);
                 }
+
                 if (HeroController.instance.playerData.equippedCharm_19)
                 {
                     HeroController.instance.AddMPChargeSpa(1);
                 }
+
                 if (HeroController.instance.playerData.equippedCharm_34)
                 {
                     HeroController.instance.AddMPChargeSpa(1);
                 }
+
                 if (HeroController.instance.playerData.equippedCharm_30)
                 {
                     HeroController.instance.AddMPChargeSpa(1);
                 }
+
                 if (HeroController.instance.playerData.equippedCharm_28)
                 {
                     HeroController.instance.AddMPChargeSpa(1);
                 }
+
                 if (HeroController.instance.playerData.equippedCharm_22)
                 {
                     HeroController.instance.AddMPChargeSpa(1);
                 }
-                if (HeroController.instance.playerData.equippedCharm_25 && !HeroController.instance.playerData.brokenCharm_25)
+
+                if (HeroController.instance.playerData.equippedCharm_25 &&
+                    !HeroController.instance.playerData.brokenCharm_25)
                 {
                     HeroController.instance.AddMPChargeSpa(1);
                 }
@@ -1144,17 +1449,23 @@ namespace Lightbringer
                     float num2 = new Random().Next(3, 12);
                     if (_passionDirection)
                     {
-                        GrubberFlyBeam = HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform.position);
+                        GrubberFlyBeam =
+                            HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
+                                .position);
                         GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() - num2);
-                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
+                        GrubberFlyBeam.transform.SetPositionY(
+                            HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
                         GrubberFlyBeam.transform.SetScaleX(-1f);
                         GrubberFlyBeam.transform.SetScaleY(1f);
                     }
                     else
                     {
-                        GrubberFlyBeam = HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform.position);
+                        GrubberFlyBeam =
+                            HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
+                                .position);
                         GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + num2);
-                        GrubberFlyBeam.transform.SetPositionY(HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
+                        GrubberFlyBeam.transform.SetPositionY(
+                            HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
                         GrubberFlyBeam.transform.SetScaleX(1f);
                         GrubberFlyBeam.transform.SetScaleY(1f);
                     }
@@ -1170,19 +1481,24 @@ namespace Lightbringer
             if (GetAttr<bool>(self, "isGameplayScene"))
             {
                 Vector2 vector = self.transform.position;
-                if ((vector.y >= -60f && vector.y <= GameManager.instance.sceneHeight + 60f && vector.x >= -60f && vector.x <= GameManager.instance.sceneWidth + 60f) || self.cState.dead || !GetAttr<bool>(self, "boundsChecking"))
+                if ((vector.y >= -60f && vector.y <= GameManager.instance.sceneHeight + 60f && vector.x >= -60f &&
+                     vector.x <= GameManager.instance.sceneWidth + 60f) || self.cState.dead ||
+                    !GetAttr<bool>(self, "boundsChecking"))
                 {
                 }
             }
+
             float scaleX = self.transform.GetScaleX();
             if (scaleX < -1f)
             {
                 self.transform.SetScaleX(-Math.Abs(self.transform.GetScaleX()));
             }
+
             if (scaleX > 1f)
             {
                 self.transform.SetScaleX(Math.Abs(self.transform.GetScaleX()));
             }
+
             if (self.transform.position.z != 0.004f)
             {
                 self.transform.SetPositionZ(0.004f);
