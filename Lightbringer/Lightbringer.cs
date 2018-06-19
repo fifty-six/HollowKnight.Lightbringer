@@ -854,8 +854,7 @@ namespace Lightbringer
                             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
                             HeroController.instance.playerData.beamDamage = lanceDamage;
 
-                            // 0.5, 0.85, 1.2, 1.55, .15, -.2, -.55, -.9
-                            foreach (int i in new [] {1, 2, 3})
+                            foreach (float i in new float[] {0.5f, 0.85f, 1.2f, 1.55f, .15f, -.2f, -.55f, -.9f})
                             {
                                 GrubberFlyBeam = critical
                                     ? HeroController.instance.grubberFlyBeamPrefabU_fury.Spawn(HeroController.instance
@@ -867,16 +866,8 @@ namespace Lightbringer
                                 GrubberFlyBeam.transform.SetScaleX(0.6f);
                                 GrubberFlyBeam.transform.SetScaleY(0.6f);
                                 GrubberFlyBeam.transform.SetPositionX(
-                                    HeroController.instance.transform.GetPositionX() + 0.5f);
+                                    HeroController.instance.transform.GetPositionX() + i);
                             }
-
-                            HeroController.instance.transform.GetPositionX() + 0.85f);
-                                HeroController.instance.transform.GetPositionX() + 1.2f);
-                                HeroController.instance.transform.GetPositionX() + 1.55f);
-                                HeroController.instance.transform.GetPositionX() + 0.15f);
-                                HeroController.instance.transform.GetPositionX() - 0.2f);
-                                HeroController.instance.transform.GetPositionX() - 0.55f);
-                                HeroController.instance.transform.GetPositionX() - 0.9f);
                         }
 
                         SetAttr(HeroController.instance, "slashComponent", HeroController.instance.upSlash);
