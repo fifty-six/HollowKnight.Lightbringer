@@ -257,7 +257,7 @@ namespace Lightbringer
             // Damage Controller //////////////////////////////////////////////////////////////////////////
             // NAIL
             HeroController.instance.playerData.nailDamage =
-                1 + (HeroController.instance.playerData.nailSmithUpgrades * 2);
+                1 + HeroController.instance.playerData.nailSmithUpgrades * 2;
             if (HeroController.instance.playerData.equippedCharm_13) // Mark of Pride
             {
                 HeroController.instance.playerData.CountGameCompletion();
@@ -268,7 +268,7 @@ namespace Lightbringer
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
             // LANCE
             HeroController.instance.playerData.beamDamage =
-                3 + (HeroController.instance.playerData.nailSmithUpgrades * 3);
+                3 + HeroController.instance.playerData.nailSmithUpgrades * 3;
             if (HeroController.instance.playerData.equippedCharm_35
             ) // Radiant Jewel charm replacing Grubberfly's Elegy
             {
@@ -294,7 +294,7 @@ namespace Lightbringer
                 Random rnd = new Random(); // CRITICAL HIT CHARM
                 int critChance = rnd.Next(1, 101);
                 HeroController.instance.playerData.CountJournalEntries();
-                int critThreshold = 100 - (HeroController.instance.playerData.journalEntriesCompleted / 10);
+                int critThreshold = 100 - HeroController.instance.playerData.journalEntriesCompleted / 10;
                 if (critChance > Math.Min(critThreshold, 96))
                 {
                     critical = true;
@@ -1017,7 +1017,7 @@ namespace Lightbringer
             PlayerData.instance.mageLordDreamDefeated = false;
 
             // BURNING PRIDE CALCULATIONS
-            PlayerData.instance.nailDamage = 1 + (PlayerData.instance.nailSmithUpgrades * 2);
+            PlayerData.instance.nailDamage = 1 + PlayerData.instance.nailSmithUpgrades * 2;
             if (PlayerData.instance.equippedCharm_13) // Mark of Pride
             {
                 PlayerData.instance.CountGameCompletion();
@@ -1429,7 +1429,7 @@ namespace Lightbringer
                         .position);
                 GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() - num2);
                 GrubberFlyBeam.transform.SetPositionY(
-                    HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
+                    HeroController.instance.transform.GetPositionY() - 0.5f + num2 / 6f);
                 GrubberFlyBeam.transform.SetScaleX(-1f);
                 GrubberFlyBeam.transform.SetScaleY(1f);
             }
@@ -1440,7 +1440,7 @@ namespace Lightbringer
                         .position);
                 GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + num2);
                 GrubberFlyBeam.transform.SetPositionY(
-                    HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
+                    HeroController.instance.transform.GetPositionY() - 0.5f + num2 / 6f);
                 GrubberFlyBeam.transform.SetScaleX(1f);
                 GrubberFlyBeam.transform.SetScaleY(1f);
             }
@@ -1454,8 +1454,8 @@ namespace Lightbringer
             if (GetAttr<bool>(self, "isGameplayScene"))
             {
                 Vector2 vector = self.transform.position;
-                if ((vector.y >= -60f && vector.y <= GameManager.instance.sceneHeight + 60f && vector.x >= -60f &&
-                     vector.x <= GameManager.instance.sceneWidth + 60f) || self.cState.dead ||
+                if (vector.y >= -60f && vector.y <= GameManager.instance.sceneHeight + 60f && vector.x >= -60f &&
+                    vector.x <= GameManager.instance.sceneWidth + 60f || self.cState.dead ||
                     !GetAttr<bool>(self, "boundsChecking"))
                 {
                 }

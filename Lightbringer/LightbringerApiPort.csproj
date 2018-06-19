@@ -59,4 +59,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+      @echo on
+      SET MOD_DEST="D:\Steam\\steamapps\common\Hollow Knight\hollow_knight_Data\Managed\Mods\"
+      echo Copying mod
+      copy "$(TargetPath)" %25MOD_DEST%25
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>
