@@ -238,8 +238,8 @@ namespace Lightbringer
                                                          PlayerData.instance.MPReserveMax))
             {
                 int lostGeo = (PlayerData.instance.maxMP - 1 - PlayerData.instance.MPCharge) / 3 +
-                          (PlayerData.instance.MPReserveMax - PlayerData.instance.MPReserve) / 3 + 1;
-                PlayerData.instance.AddMPCharge(lostGeo > amount ? amount * 3: lostGeo * 3);
+                              (PlayerData.instance.MPReserveMax - PlayerData.instance.MPReserve) / 3 + 1;
+                PlayerData.instance.AddMPCharge(lostGeo > amount ? amount * 3 : lostGeo * 3);
                 orig(self, lostGeo > amount ? 0 : amount - lostGeo);
             }
             else
@@ -351,6 +351,7 @@ namespace Lightbringer
                 switch (attackDir)
                 {
                     #region Normal Attack
+
                     case AttackDirection.normal:
                         HeroController.instance.playerData.nailDamage =
                             HeroController.instance.playerData.beamDamage; // fix bug
@@ -441,6 +442,7 @@ namespace Lightbringer
                                             .transform.position);
                                     GrubberFlyBeam.transform.SetPositionY(
                                         HeroController.instance.transform.GetPositionY() - 0f);
+
                                     if (HeroController.instance.playerData.equippedCharm_4)
                                     {
                                         GrubberFlyBeam.transform.SetPositionY(
@@ -458,6 +460,7 @@ namespace Lightbringer
                                             .transform.position);
                                     GrubberFlyBeam.transform.SetPositionY(
                                         HeroController.instance.transform.GetPositionY() + 0.7f);
+
                                     if (HeroController.instance.playerData.equippedCharm_4)
                                     {
                                         GrubberFlyBeam.transform.SetPositionY(
@@ -836,8 +839,11 @@ namespace Lightbringer
 
                         break;
                     // attack upwards
-#endregion
+
+                    #endregion
+
                     #region Upwards Attack
+
                     case AttackDirection.upward:
                         // Timescale Charm #14
                         if (HeroController.instance.playerData.equippedCharm_14 && _timefracture < 2f)
@@ -878,7 +884,9 @@ namespace Lightbringer
                         GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
                         break;
                     // attack downwards
+
                     #endregion
+
                     case AttackDirection.downward:
                         SetAttr(HeroController.instance, "slashComponent", HeroController.instance.downSlash);
                         SetAttr(HeroController.instance, "slashFsm", HeroController.instance.downSlashFsm);
@@ -1049,6 +1057,7 @@ namespace Lightbringer
             {
                 UnityEngine.Object.Destroy(i);
             }
+
             if (_gruzMinion != null)
                 UnityEngine.Object.Destroy(_gruzMinion);
 
@@ -1177,7 +1186,6 @@ namespace Lightbringer
                     _kinFight[5] = true; // iFrames
                     _kinTwo = Object.Instantiate(_kin);
                     _kinTwo.GetComponent<HealthManager>().hp = 99999;
-                    // FSMUtility.SetInt(FSMUtility.LocateFSM(KinTwo, "health_manager_enemy"), "HP", 99999);
                 }
                 else if (_kinFight[5]) // iFrames
                 {
@@ -1191,7 +1199,6 @@ namespace Lightbringer
                 else if (!_kinFight[1] && kinHp < 1)
                 {
                     _kinFight[1] = true;
-                    // FSMUtility.SetInt(FSMUtility.LocateFSM(KinTwo, "health_manager_enemy"), "HP", 1);
                     _kinTwo.GetComponent<HealthManager>().hp = 1;
                 }
             }
@@ -1207,16 +1214,11 @@ namespace Lightbringer
             }
 
             // EMPRESS MUZZNIK BOSS FIGHT
-            if (_gruz == null) // && GameManager.instance.sceneName == "Crossroads_04")
+            if (_gruz == null)
             {
                 _gruz = GameObject.Find("Giant Fly");
                 if (_gruz != null)
                 {
-                    //if (GruzMinions.Any(x => x != null))
-                    //{
-                    //    foreach (GameObject go in GruzMinions.Where(x => x != null))
-                    //        UnityEngine.Object.Destroy(go);
-                    //}
                     _gruzHealth = _gruz.GetComponent<HealthManager>();
                     _gruzHealth.hp = 1500;
                     _gruzFight = new bool[12];
@@ -1303,40 +1305,12 @@ namespace Lightbringer
                 // Mana regen
                 _manaRegenTime -= 1.11f;
                 HeroController.instance.AddMPChargeSpa(1);
-                if (HeroController.instance.playerData.equippedCharm_17)
+                foreach (int i in new int[] {17, 19, 34, 30, 28, 22, 25})
                 {
-                    HeroController.instance.AddMPChargeSpa(1);
-                }
-
-                if (HeroController.instance.playerData.equippedCharm_19)
-                {
-                    HeroController.instance.AddMPChargeSpa(1);
-                }
-
-                if (HeroController.instance.playerData.equippedCharm_34)
-                {
-                    HeroController.instance.AddMPChargeSpa(1);
-                }
-
-                if (HeroController.instance.playerData.equippedCharm_30)
-                {
-                    HeroController.instance.AddMPChargeSpa(1);
-                }
-
-                if (HeroController.instance.playerData.equippedCharm_28)
-                {
-                    HeroController.instance.AddMPChargeSpa(1);
-                }
-
-                if (HeroController.instance.playerData.equippedCharm_22)
-                {
-                    HeroController.instance.AddMPChargeSpa(1);
-                }
-
-                if (HeroController.instance.playerData.equippedCharm_25 &&
-                    !HeroController.instance.playerData.brokenCharm_25)
-                {
-                    HeroController.instance.AddMPChargeSpa(1);
+                    if (PlayerData.instance.GetBool("equippedCharm_" + i) && (i != 25 || !PlayerData.instance.brokenCharm_25))
+                    {
+                        HeroController.instance.AddMPChargeSpa(1);
+                    }
                 }
 
                 // Easter Egg
@@ -1377,28 +1351,17 @@ namespace Lightbringer
                     _passionTime -= 2f;
                     _passionDirection = !_passionDirection;
                     float num2 = new Random().Next(3, 12);
-                    if (_passionDirection)
-                    {
-                        GrubberFlyBeam =
-                            HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
-                                .position);
-                        GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() - num2);
-                        GrubberFlyBeam.transform.SetPositionY(
-                            HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
-                        GrubberFlyBeam.transform.SetScaleX(-1f);
-                        GrubberFlyBeam.transform.SetScaleY(1f);
-                    }
-                    else
-                    {
-                        GrubberFlyBeam =
-                            HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
-                                .position);
-                        GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + num2);
-                        GrubberFlyBeam.transform.SetPositionY(
-                            HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
-                        GrubberFlyBeam.transform.SetScaleX(1f);
-                        GrubberFlyBeam.transform.SetScaleY(1f);
-                    }
+                    GrubberFlyBeam = _passionDirection
+                        ? HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
+                            .position)
+                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
+                            .position);
+                    GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() +
+                                                          (_passionDirection ? -num2 : num2));
+                    GrubberFlyBeam.transform.SetPositionY(
+                        HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
+                    GrubberFlyBeam.transform.SetScaleX(_passionDirection ? -1f : 1f);
+                    GrubberFlyBeam.transform.SetScaleY(1f);
                 }
             }
 
@@ -1434,11 +1397,6 @@ namespace Lightbringer
                 self.transform.SetPositionZ(0.004f);
             }
         }
-
-        /*
-                public GameObject C;
-                public Text TextObj;
-        */
 
         private bool Yes(On.HeroController.orig_CanOpenInventory orig, HeroController self)
         {
