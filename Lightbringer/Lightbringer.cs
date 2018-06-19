@@ -127,8 +127,6 @@ namespace Lightbringer
 
         private int _hitNumber;
 
-        private int? _inter;
-
         // Lost Kins variables
         private GameObject _kin;
 
@@ -191,11 +189,14 @@ namespace Lightbringer
             On.HeroController.DoAttack += DoAttack;
             On.HeroController.SoulGain += SoulGain;
             On.HeroController.Update += Update;
+            // ModHooks.Instance.HeroUpdateHook += Update;
             On.HeroController.Update10 += Update10;
             On.PlayerData.AddGeo += AddGeo;
-            On.PlayerData.TakeHealth += TakeHealth;
+            //On.PlayerData.TakeHealth += TakeHealth;
+            ModHooks.Instance.TakeHealthHook += TakeHealth;
             On.NailSlash.StartSlash += StartSlash;
-            On.HeroController.CharmUpdate += CharmUpdate;
+            // On.HeroController.CharmUpdate += CharmUpdate;
+            ModHooks.Instance.CharmUpdateHook += CharmUpdate;
             On.HeroController.Move += Move;
             ModHooks.Instance.LanguageGetHook += LangGet;
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoadedHook;
@@ -966,7 +967,8 @@ namespace Lightbringer
             }
         }
 
-        private void CharmUpdate(On.HeroController.orig_CharmUpdate orig, HeroController self)
+        //private void CharmUpdate(On.HeroController.orig_CharmUpdate orig, HeroController self)
+        private void CharmUpdate(PlayerData y, HeroController self)
         {
             // Tiny Shell charm
             if (PlayerData.instance.equippedCharm_4)
@@ -1085,22 +1087,20 @@ namespace Lightbringer
         private void SceneLoadedHook(Scene arg0, LoadSceneMode lsm)
         {
             // Without this your shade doesn't go away when you die.
-            if (GameManager.instance == null) return;
-            GameManager.instance.StartCoroutine(SceneLoaded(arg0, lsm));
+            if (GameManager.instance != null) GameManager.instance.StartCoroutine(SceneLoaded(arg0));
         }
 
-        private IEnumerator<YieldInstruction> SceneLoaded(Scene arg0, LoadSceneMode lsm)
+        private IEnumerator<YieldInstruction> SceneLoaded(Scene arg0)
         {
             yield return null;
             yield return null;
-            _inter = null;
 
             // Text Display code
             if (_canvas == null)
             {
                 CanvasUtil.CreateFonts();
                 _canvas = CanvasUtil.CreateCanvas(RenderMode.ScreenSpaceOverlay, new Vector2(1920, 1080));
-                UnityEngine.Object.DontDestroyOnLoad(_canvas);
+                Object.DontDestroyOnLoad(_canvas);
                 GameObject gameObject =
                     CanvasUtil.CreateTextPanel(_canvas, "", 27, TextAnchor.MiddleCenter,
                         new CanvasUtil.RectData(
@@ -1117,10 +1117,10 @@ namespace Lightbringer
 
             foreach (GameObject i in _gruzMinions.Where(x => x != null))
             {
-                UnityEngine.Object.Destroy(i);
+                Object.Destroy(i);
             }
             if (_gruzMinion != null)
-                UnityEngine.Object.Destroy(_gruzMinion);
+                Object.Destroy(_gruzMinion);
 
             // Empress Muzznik
             PlayerData.instance.CountGameCompletion();
@@ -1189,41 +1189,18 @@ namespace Lightbringer
             }
         }
 
-        private void TakeHealth(On.PlayerData.orig_TakeHealth orig, PlayerData self, int amount)
+        //private void TakeHealth(On.PlayerData.orig_TakeHealth orig, PlayerData self, int amount)
+        private int TakeHealth(int amount)
         {
             PlayerData.instance.ghostCoins = 1; // for timefracture
 
-            if (PlayerData.instance.equippedCharm_6)
-            {
-                PlayerData.instance.health = 0;
-                return;
-            }
-
-            if (PlayerData.instance.healthBlue > 0)
-            {
-                PlayerData.instance.damagedBlue = true;
-                PlayerData.instance.healthBlue -= amount;
-                if (PlayerData.instance.healthBlue < 0)
-                {
-                    PlayerData.instance.health += PlayerData.instance.healthBlue;
-                }
-            }
-            else
-            {
-                PlayerData.instance.damagedBlue = false;
-                if (PlayerData.instance.health - amount <= 0)
-                {
-                    PlayerData.instance.health = 0;
-                    return;
-                }
-
-                PlayerData.instance.health -= amount;
-            }
+            if (!PlayerData.instance.equippedCharm_6) return amount;
+            PlayerData.instance.health = 0;
+            return 0;
         }
 
         private void Update(On.HeroController.orig_Update orig, HeroController self)
         {
-            // START MOD CODE
             if (_timefracture < 1f || HeroController.instance.playerData.ghostCoins == 1)
             {
                 HeroController.instance.playerData.ghostCoins = 0;
@@ -1439,37 +1416,33 @@ namespace Lightbringer
                 }
             }
 
-            if (HeroController.instance.playerData.equippedCharm_26) // Nailmaster's Passion
+            if (!HeroController.instance.playerData.equippedCharm_26) return;
+            _passionTime += Time.deltaTime * Time.timeScale;
+            if (!(_passionTime >= 2f)) return;
+            _passionTime -= 2f;
+            _passionDirection = !_passionDirection;
+            float num2 = new Random().Next(3, 12);
+            if (_passionDirection)
             {
-                _passionTime += Time.deltaTime * Time.timeScale;
-                if (_passionTime >= 2f)
-                {
-                    _passionTime -= 2f;
-                    _passionDirection = !_passionDirection;
-                    float num2 = new Random().Next(3, 12);
-                    if (_passionDirection)
-                    {
-                        GrubberFlyBeam =
-                            HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
-                                .position);
-                        GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() - num2);
-                        GrubberFlyBeam.transform.SetPositionY(
-                            HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
-                        GrubberFlyBeam.transform.SetScaleX(-1f);
-                        GrubberFlyBeam.transform.SetScaleY(1f);
-                    }
-                    else
-                    {
-                        GrubberFlyBeam =
-                            HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
-                                .position);
-                        GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + num2);
-                        GrubberFlyBeam.transform.SetPositionY(
-                            HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
-                        GrubberFlyBeam.transform.SetScaleX(1f);
-                        GrubberFlyBeam.transform.SetScaleY(1f);
-                    }
-                }
+                GrubberFlyBeam =
+                    HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
+                        .position);
+                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() - num2);
+                GrubberFlyBeam.transform.SetPositionY(
+                    HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
+                GrubberFlyBeam.transform.SetScaleX(-1f);
+                GrubberFlyBeam.transform.SetScaleY(1f);
+            }
+            else
+            {
+                GrubberFlyBeam =
+                    HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
+                        .position);
+                GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() + num2);
+                GrubberFlyBeam.transform.SetPositionY(
+                    HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
+                GrubberFlyBeam.transform.SetScaleX(1f);
+                GrubberFlyBeam.transform.SetScaleY(1f);
             }
 
             // END MOD CODE
@@ -1503,7 +1476,7 @@ namespace Lightbringer
             {
                 self.transform.SetPositionZ(0.004f);
             }
-        }
+       }
 
         /*
                 public GameObject C;
