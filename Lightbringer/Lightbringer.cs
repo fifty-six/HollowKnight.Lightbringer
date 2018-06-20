@@ -191,8 +191,8 @@ namespace Lightbringer
             Left
         }
 
-        private void SpawnBeam(BeamDirection dir, float scaleX, float scaleY, bool critical, float? positionX = null,
-            float? positionY = null, bool offset = false, bool rightNegative = true)
+        private void SpawnBeam(BeamDirection dir, float scaleX, float scaleY, bool critical = false,
+            float? positionX = null, float? positionY = null, bool offset = false, bool rightNegative = true)
         {
             string beamPrefab = "grubberFlyBeamPrefab";
             switch (dir)
@@ -453,9 +453,10 @@ namespace Lightbringer
                             {
                                 // Longnail AND Soul Catcher
                                 if (HeroController.instance.playerData.equippedCharm_20 &&
-                                    HeroController.instance.playerData.equippedCharm_18) 
+                                    HeroController.instance.playerData.equippedCharm_18)
                                 {
-                                    foreach (BeamDirection x in new BeamDirection[] {BeamDirection.Left, BeamDirection.Right})
+                                    foreach (BeamDirection x in new BeamDirection[]
+                                        {BeamDirection.Left, BeamDirection.Right})
                                     {
                                         SpawnBeam(x, 1.5f, 1.5f, critical,
                                             positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0, offset: true);
@@ -463,22 +464,25 @@ namespace Lightbringer
                                         SpawnBeam(x, 1.5f, 1.5f, critical,
                                             positionY: PlayerData.instance.equippedCharm_4 ? .9f : .7f, offset: true);
                                     }
-
                                 }
                                 // Soul Catcher
                                 else if (HeroController.instance.playerData.equippedCharm_20)
                                 {
                                     // attack rightwards with charm 20
-                                    if (HeroController.instance.cState.facingRight) 
+                                    if (HeroController.instance.cState.facingRight)
                                     {
-                                        SpawnBeam(BeamDirection.Right, 1.5f, 1.5f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0f, offset: true);
-                                        SpawnBeam(BeamDirection.Right, 1.5f, 1.5f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .7f : .9f, offset: true);
+                                        SpawnBeam(BeamDirection.Right, 1.5f, 1.5f, critical,
+                                            positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0f, offset: true);
+                                        SpawnBeam(BeamDirection.Right, 1.5f, 1.5f, critical,
+                                            positionY: PlayerData.instance.equippedCharm_4 ? .7f : .9f, offset: true);
                                         HeroController.instance.RecoilLeftLong();
                                     }
                                     else // attack leftwards with charm 20
                                     {
-                                        SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0f, offset: true);
-                                        SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .7f : .9f, offset: true);
+                                        SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical,
+                                            positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0f, offset: true);
+                                        SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical,
+                                            positionY: PlayerData.instance.equippedCharm_4 ? .7f : .9f, offset: true);
                                         HeroController.instance.RecoilRightLong();
                                     }
                                 }
@@ -494,7 +498,8 @@ namespace Lightbringer
                                 {
                                     if (HeroController.instance.cState.facingRight)
                                     {
-                                        SpawnBeam(BeamDirection.Right, 1.5f, 1.5f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .2f : .1f, offset: true);
+                                        SpawnBeam(BeamDirection.Right, 1.5f, 1.5f, critical,
+                                            positionY: PlayerData.instance.equippedCharm_4 ? .2f : .1f, offset: true);
                                         if (HeroController.instance.playerData.equippedCharm_4)
                                         {
                                             HeroController.instance.RecoilLeftLong();
@@ -506,7 +511,8 @@ namespace Lightbringer
                                     }
                                     else
                                     {
-                                        SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .2f : .1f, offset: true);
+                                        SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical,
+                                            positionY: PlayerData.instance.equippedCharm_4 ? .2f : .1f, offset: true);
                                         if (HeroController.instance.playerData.equippedCharm_4)
                                         {
                                             HeroController.instance.RecoilRightLong();
@@ -536,17 +542,21 @@ namespace Lightbringer
                             {
                                 if (HeroController.instance.cState.facingRight) // attack rightwards with charm 20
                                 {
-                                    SpawnBeam(BeamDirection.Right, 1f, 1f, critical, positionY: PlayerData.instance.equippedCharm_4 ? -.2f : -.4f, offset: true);
-                                    SpawnBeam(BeamDirection.Right, 1f, 1f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .7f : .5f, offset: true);
+                                    SpawnBeam(BeamDirection.Right, 1f, 1f, critical,
+                                        positionY: PlayerData.instance.equippedCharm_4 ? -.2f : -.4f, offset: true);
+                                    SpawnBeam(BeamDirection.Right, 1f, 1f, critical,
+                                        positionY: PlayerData.instance.equippedCharm_4 ? .7f : .5f, offset: true);
                                 }
                                 else // attack leftwards with charm 20
                                 {
-                                    SpawnBeam(BeamDirection.Left, 1f, 1f, critical, positionY: PlayerData.instance.equippedCharm_4 ? -.2f : -.4f, offset: true);
-                                    SpawnBeam(BeamDirection.Left, 1f, 1f, critical, positionY: PlayerData.instance.equippedCharm_4 ? .7f : .5f, offset: true);
+                                    SpawnBeam(BeamDirection.Left, 1f, 1f, critical,
+                                        positionY: PlayerData.instance.equippedCharm_4 ? -.2f : -.4f, offset: true);
+                                    SpawnBeam(BeamDirection.Left, 1f, 1f, critical,
+                                        positionY: PlayerData.instance.equippedCharm_4 ? .7f : .5f, offset: true);
                                 }
                             }
                             // Longnail
-                            else if (HeroController.instance.playerData.equippedCharm_18) 
+                            else if (HeroController.instance.playerData.equippedCharm_18)
                             {
                                 SpawnBeam(BeamDirection.Left, 1f, 1f, critical);
                                 SpawnBeam(BeamDirection.Right, 1f, 1f, critical);
@@ -1083,17 +1093,8 @@ namespace Lightbringer
                     _passionTime -= 2f;
                     _passionDirection = !_passionDirection;
                     float num2 = new Random().Next(3, 12);
-                    GrubberFlyBeam = _passionDirection
-                        ? HeroController.instance.grubberFlyBeamPrefabR.Spawn(HeroController.instance.transform
-                            .position)
-                        : HeroController.instance.grubberFlyBeamPrefabL.Spawn(HeroController.instance.transform
-                            .position);
-                    GrubberFlyBeam.transform.SetPositionX(HeroController.instance.transform.GetPositionX() +
-                                                          (_passionDirection ? -num2 : num2));
-                    GrubberFlyBeam.transform.SetPositionY(
-                        HeroController.instance.transform.GetPositionY() - 0.5f + (num2 / 6f));
-                    GrubberFlyBeam.transform.SetScaleX(_passionDirection ? -1f : 1f);
-                    GrubberFlyBeam.transform.SetScaleY(1f);
+                    SpawnBeam(_passionDirection ? BeamDirection.Right : BeamDirection.Left, 1f, 1f,
+                        positionX: _passionDirection ? -num2 : num2, positionY: -0.5f + num2 / 6f, offset: true);
                 }
             }
 
