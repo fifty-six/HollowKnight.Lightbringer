@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using GlobalEnums;
+using ModCommon;
 using Modding;
 using On.HutongGames.PlayMaker.Actions;
 using UnityEngine;
@@ -228,7 +229,6 @@ namespace Lightbringer
 
         public override void Initialize()
         {
-            On.HeroController.CanOpenInventory += Yes;
             On.HeroController.Attack += Attack;
             On.HeroController.DoAttack += DoAttack;
             On.HeroController.SoulGain += SoulGain;
@@ -255,6 +255,7 @@ namespace Lightbringer
 
                 using (Stream s = asm.GetManifestResourceStream(res))
                 {
+                    if (s == null) continue;
                     byte[] buffer = new byte[s.Length];
                     s.Read(buffer, 0, buffer.Length);
                     s.Dispose();
@@ -264,11 +265,13 @@ namespace Lightbringer
                     tex.LoadImage(buffer);
 
                     //Create sprite from texture
-                    _sprites.Add(res,
+                    //Substring is to cut off the Lightbringer. and the .png
+                    _sprites.Add(res.Substring(13, res.Length-17),
                         Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)));
+                        
+                    Log("Created sprite from embedded image: " + res);
                 }
 
-                Log("Created sprite from embedded image: " + res);
             }
         }
 
@@ -755,6 +758,22 @@ namespace Lightbringer
         {
             yield return null;
             yield return null;
+            
+            HeroController.instance.grubberFlyBeamPrefabL.PrintSceneHierarchyTree("biggay2");
+            Log(HeroController.instance.grubberFlyBeamPrefabL.GetComponent<MeshRenderer>().material.mainTexture.width);
+            Log(HeroController.instance.grubberFlyBeamPrefabL.GetComponent<MeshRenderer>().material.mainTexture.height);
+                   
+                    
+
+            //Log("yeet on the haters");
+            foreach (KeyValuePair<string, Sprite> x in _sprites)
+            {
+                HeroController.instance.grubberFlyBeamPrefabL.GetComponent<MeshRenderer>().material.mainTexture =
+                    x.Value.texture;
+                HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
+                    .mainTexture = x.Value.texture;
+                Log(x.Key);
+            }
 
             // Text Display code
             if (_canvas == null)
@@ -800,8 +819,8 @@ namespace Lightbringer
                 Object.Destroy(i);
             }
 
-            if (_gruzMinion != null)
-                Object.Destroy(_gruzMinion);
+            //if (_gruzMinion != null)
+            //    Object.Destroy(_gruzMinion);
 
             // Empress Muzznik
             PlayerData.instance.CountGameCompletion();
@@ -960,6 +979,8 @@ namespace Lightbringer
                 _gruz = GameObject.Find("Giant Fly");
                 if (_gruz != null)
                 {
+                    _gruz.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material.mainTexture =
+                        _sprites["Muzznik"].texture;
                     _gruzHealth = _gruz.GetComponent<HealthManager>();
                     _gruzHealth.hp = 1500;
                     _gruzFight = new bool[12];
@@ -1131,9 +1152,5 @@ namespace Lightbringer
             }
         }
 
-        private bool Yes(On.HeroController.orig_CanOpenInventory orig, HeroController self)
-        {
-            return true;
-        }
     }
 }

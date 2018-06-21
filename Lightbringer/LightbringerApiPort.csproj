@@ -60,6 +60,8 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="_0005_charm_fury.png" />
+    <EmbeddedResource Include="nail_upgrade_0000_pure-nail.png" />
+    <EmbeddedResource Include="Muzznik.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
