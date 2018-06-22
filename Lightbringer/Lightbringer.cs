@@ -237,9 +237,11 @@ namespace Lightbringer
             On.PlayerData.AddGeo += AddGeo;
             On.PlayerData.TakeHealth += TakeHealth;
             On.NailSlash.StartSlash += StartSlash;
-            On.HeroController.CharmUpdate += CharmUpdate;
+            // On.HeroController.CharmUpdate += CharmUpdate;
+            ModHooks.Instance.CharmUpdateHook += CharmUpdate;
             On.HeroController.Move += Move;
             ModHooks.Instance.LanguageGetHook += LangGet;
+            ModHooks.Instance.BlueHealthHook += BlueHealth;
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoadedHook;
 
             Assembly asm = Assembly.GetExecutingAssembly();
@@ -273,6 +275,12 @@ namespace Lightbringer
                 }
 
             }
+        }
+
+        private int BlueHealth()
+        {
+            // Make Rising Light not give 2 blue health.
+            return PlayerData.instance.equippedCharm_8 ? -2 : 0;
         }
 
         private string LangGet(string key, string sheetTitle)
@@ -631,7 +639,8 @@ namespace Lightbringer
             }
         }
 
-        private void CharmUpdate(On.HeroController.orig_CharmUpdate orig, HeroController self)
+        //private void CharmUpdate(On.HeroController.orig_CharmUpdate orig, HeroController self)
+        private void CharmUpdate(PlayerData pd, HeroController self)
         {
             // Tiny Shell charm
             if (PlayerData.instance.equippedCharm_4)
@@ -645,46 +654,46 @@ namespace Lightbringer
                 self.transform.SetScaleY(1f * Math.Sign(self.transform.GetScaleY()));
             }
 
-            PlayerData.instance.isInvincible = false;
+            pd.isInvincible = false;
             Time.timeScale = 1f; // reset time to normal
             _timefracture = 1f; // reset time to normal
 
-            PlayerData.instance.charmCost_21 = 1; // Faulty Wallet update patch
-            PlayerData.instance.charmCost_19 = 4; // Eye of the Storm update patch
-            PlayerData.instance.charmCost_15 = 3; // Bloodlust update patch
-            PlayerData.instance.charmCost_14 = 2; // Glass Soul update patch
-            PlayerData.instance.charmCost_8 = 3; // Rising Light update patch
-            PlayerData.instance.charmCost_35 = 5; // Radiant Jewel update patch
-            PlayerData.instance.charmCost_18 = 3; // Silent Divide update patch
-            PlayerData.instance.charmCost_3 = 2; // Bloodsong update patch
+            pd.charmCost_21 = 1; // Faulty Wallet update patch
+            pd.charmCost_19 = 4; // Eye of the Storm update patch
+            pd.charmCost_15 = 3; // Bloodlust update patch
+            pd.charmCost_14 = 2; // Glass Soul update patch
+            pd.charmCost_8 = 3; // Rising Light update patch
+            pd.charmCost_35 = 5; // Radiant Jewel update patch
+            pd.charmCost_18 = 3; // Silent Divide update patch
+            pd.charmCost_3 = 2; // Bloodsong update patch
 
             // Respawn all ghosts and pin them!
-            PlayerData.instance.galienPinned = true;
-            PlayerData.instance.galienDefeated = 0;
-            PlayerData.instance.markothPinned = true;
-            PlayerData.instance.markothDefeated = 0;
-            PlayerData.instance.noEyesPinned = true;
-            PlayerData.instance.noEyesDefeated = 0;
-            PlayerData.instance.mumCaterpillarPinned = true;
-            PlayerData.instance.mumCaterpillarDefeated = 0;
-            PlayerData.instance.huPinned = true;
-            PlayerData.instance.elderHuDefeated = 0;
-            PlayerData.instance.xeroPinned = true;
-            PlayerData.instance.xeroDefeated = 0;
-            PlayerData.instance.aladarPinned = true;
-            PlayerData.instance.aladarSlugDefeated = 0;
+            pd.galienPinned = true;
+            pd.galienDefeated = 0;
+            pd.markothPinned = true;
+            pd.markothDefeated = 0;
+            pd.noEyesPinned = true;
+            pd.noEyesDefeated = 0;
+            pd.mumCaterpillarPinned = true;
+            pd.mumCaterpillarDefeated = 0;
+            pd.huPinned = true;
+            pd.elderHuDefeated = 0;
+            pd.xeroPinned = true;
+            pd.xeroDefeated = 0;
+            pd.aladarPinned = true;
+            pd.aladarSlugDefeated = 0;
 
             // resets dream boss fights
-            PlayerData.instance.falseKnightDreamDefeated = false;
-            PlayerData.instance.infectedKnightDreamDefeated = false;
-            PlayerData.instance.mageLordDreamDefeated = false;
+            pd.falseKnightDreamDefeated = false;
+            pd.infectedKnightDreamDefeated = false;
+            pd.mageLordDreamDefeated = false;
 
             // BURNING PRIDE CALCULATIONS
-            PlayerData.instance.nailDamage = 1 + PlayerData.instance.nailSmithUpgrades * 2;
-            if (PlayerData.instance.equippedCharm_13) // Mark of Pride
+            pd.nailDamage = 1 + pd.nailSmithUpgrades * 2;
+            if (pd.equippedCharm_13) // Mark of Pride
             {
-                PlayerData.instance.CountGameCompletion();
-                PlayerData.instance.nailDamage += (int) PlayerData.instance.completionPercentage / 6;
+                pd.CountGameCompletion();
+                pd.nailDamage += (int) pd.completionPercentage / 6;
             }
 
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
@@ -758,23 +767,12 @@ namespace Lightbringer
         {
             yield return null;
             yield return null;
+
+            HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
+                .mainTexture = _sprites["Lances"].texture;
+
+            GameManager.instance.inventoryFSM.gameObject.PrintSceneHierarchyTree("urgay3");
             
-            HeroController.instance.grubberFlyBeamPrefabL.PrintSceneHierarchyTree("biggay2");
-            Log(HeroController.instance.grubberFlyBeamPrefabL.GetComponent<MeshRenderer>().material.mainTexture.width);
-            Log(HeroController.instance.grubberFlyBeamPrefabL.GetComponent<MeshRenderer>().material.mainTexture.height);
-                   
-                    
-
-            //Log("yeet on the haters");
-            foreach (KeyValuePair<string, Sprite> x in _sprites)
-            {
-                HeroController.instance.grubberFlyBeamPrefabL.GetComponent<MeshRenderer>().material.mainTexture =
-                    x.Value.texture;
-                HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
-                    .mainTexture = x.Value.texture;
-                Log(x.Key);
-            }
-
             // Text Display code
             if (_canvas == null)
             {
@@ -795,6 +793,7 @@ namespace Lightbringer
                 _textObj.fontSize = 42;
 
 
+                // TODO: Remove this.
                 foreach (KeyValuePair<string, Sprite> spritePair in _sprites)
                 {
                     GameObject unused =
