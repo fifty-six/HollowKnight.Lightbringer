@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using GlobalEnums;
+using HutongGames.PlayMaker;
 using ModCommon;
 using Modding;
 using On.HutongGames.PlayMaker.Actions;
@@ -235,7 +236,8 @@ namespace Lightbringer
             
             On.HeroController.Attack += Attack;
             On.HeroController.DoAttack += DoAttack;
-            On.HeroController.SoulGain += SoulGain;
+            // On.HeroController.SoulGain += SoulGain;
+            ModHooks.Instance.SoulGainHook += SoulGain;
             // On.HeroController.Update += Update;
             ModHooks.Instance.HeroUpdateHook += Update;
             On.HeroController.Update10 += Update10;
@@ -772,6 +774,9 @@ namespace Lightbringer
             yield return null;
             yield return null;
 
+            // ReSharper disable once PossibleNullReferenceException
+            GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN").Name = "no";
+
             HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
                 .mainTexture = Sprites["Lances"].texture;
 
@@ -858,14 +863,16 @@ namespace Lightbringer
             // find and save data for Empress Muzznik
         }
 
-        private void SoulGain(On.HeroController.orig_SoulGain orig, HeroController self)
+        // private void SoulGain(On.HeroController.orig_SoulGain orig, HeroController self)
+        private int SoulGain(int amount)
         {
-            if (!HeroController.instance.playerData.equippedCharm_15) return;
+            if (!HeroController.instance.playerData.equippedCharm_15) return 0;
             _hitNumber++;
-            if (_hitNumber != 5) return;
+            if (_hitNumber != 5) return 0;
             HeroController.instance.AddHealth(1);
             _hitNumber = 0;
             SpriteFlash.flash(Color.red, 0.7f, 0.45f, 0f, 0.45f);
+            return 0;
         }
 
         private void StartSlash(On.NailSlash.orig_StartSlash orig, NailSlash self)
