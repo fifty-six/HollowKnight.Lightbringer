@@ -218,12 +218,12 @@ namespace Lightbringer
             Instance = this;
             
             On.HeroController.Attack += Attack;
-            On.HeroController.DoAttack += DoAttack;
             On.PlayerData.AddGeo += AddGeo;
-            // On.PlayerData.TakeHealth += TakeHealth;
             On.NailSlash.StartSlash += StartSlash;
             On.HeroController.Move += Move;
 
+            ModHooks.Instance.DoAttackHook += DoAttack;
+            ModHooks.Instance.AfterAttackHook += AfterAttack;
             ModHooks.Instance.TakeHealthHook += TakeHealth;
             ModHooks.Instance.SoulGainHook += SoulGain;
             ModHooks.Instance.HeroUpdateHook += Update;
@@ -263,6 +263,28 @@ namespace Lightbringer
                     Log("Created sprite from embedded image: " + res);
                 }
             }
+        }
+
+        private float _origNailTerrainCheckTime;
+        private void DoAttack()
+        {
+            if (_origNailTerrainCheckTime == 0)
+            {
+                _origNailTerrainCheckTime = GetAttr<float>(HeroController.instance, "NAIL_TERRAIN_CHECK_TIME");
+            }
+
+            if (!(HeroController.instance.vertical_input < Mathf.Epsilon) &&
+                !(HeroController.instance.vertical_input < -Mathf.Epsilon &&
+                  HeroController.instance.hero_state != ActorStates.idle &&
+                  HeroController.instance.hero_state != ActorStates.running))
+            {
+                SetAttr(HeroController.instance, "NAIL_TERRAIN_CHECK_TIME", 0f);
+            }
+        }
+
+        private void AfterAttack(AttackDirection dir)
+        {
+            SetAttr(HeroController.instance, "NAIL_TERRAIN_CHECK_TIME", _origNailTerrainCheckTime);
         }
 
         private int BlueHealth()
@@ -685,42 +707,6 @@ namespace Lightbringer
             }
 
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-        }
-
-        private void DoAttack(On.HeroController.orig_DoAttack orig, HeroController self)
-        {
-            // HeroController.instance.GetType().GetMethod("ResetLook").Invoke(HeroController.instance, null);
-            HeroController.instance.cState.recoiling = false;
-
-            SetAttr(HeroController.instance, "attack_cooldown",
-                HeroController.instance.playerData.equippedCharm_32
-                    ? HeroController.instance.ATTACK_COOLDOWN_TIME_CH
-                    : HeroController.instance.ATTACK_COOLDOWN_TIME);
-
-            if (HeroController.instance.vertical_input > Mathf.Epsilon)
-            {
-                HeroController.instance.Attack(AttackDirection.upward);
-                HeroController.instance.StartCoroutine(
-                    HeroController.instance.CheckForTerrainThunk(AttackDirection.upward));
-            }
-            else if (HeroController.instance.vertical_input < -Mathf.Epsilon)
-            {
-                if (HeroController.instance.hero_state != ActorStates.idle &&
-                    HeroController.instance.hero_state != ActorStates.running)
-                {
-                    HeroController.instance.Attack(AttackDirection.downward);
-                    HeroController.instance.StartCoroutine(
-                        HeroController.instance.CheckForTerrainThunk(AttackDirection.downward));
-                }
-                else
-                {
-                    HeroController.instance.Attack(AttackDirection.normal);
-                }
-            }
-            else
-            {
-                HeroController.instance.Attack(AttackDirection.normal);
-            }
         }
 
         private void Move(On.HeroController.orig_Move orig, HeroController self, float moveDirection)
