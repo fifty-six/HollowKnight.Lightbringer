@@ -116,29 +116,12 @@ namespace Lightbringer
         };
 
         private GameObject _gruz;
-
-        private bool[] _gruzFight;
-
-        private HealthManager _gruzHealth;
-
-        private GameObject _gruzMinion;
-
-        private GameObject[] _gruzMinions;
+        
+        private GameObject _kin;
 
         private int _hitNumber;
 
         internal static Lightbringer Instance;
-
-        // Lost Kins variables
-        private GameObject _kin;
-
-        private HealthManager _kinHealth;
-
-        private bool[] _kinFight;
-
-        private GameObject _kinTwo;
-
-        private float _invincibleTime = Time.deltaTime;
 
         // mod vars
         private float _manaRegenTime = Time.deltaTime;
@@ -236,19 +219,18 @@ namespace Lightbringer
             
             On.HeroController.Attack += Attack;
             On.HeroController.DoAttack += DoAttack;
-            // On.HeroController.SoulGain += SoulGain;
-            ModHooks.Instance.SoulGainHook += SoulGain;
-            // On.HeroController.Update += Update;
-            ModHooks.Instance.HeroUpdateHook += Update;
-            On.HeroController.Update10 += Update10;
             On.PlayerData.AddGeo += AddGeo;
-            On.PlayerData.TakeHealth += TakeHealth;
+            // On.PlayerData.TakeHealth += TakeHealth;
             On.NailSlash.StartSlash += StartSlash;
-            // On.HeroController.CharmUpdate += CharmUpdate;
-            ModHooks.Instance.CharmUpdateHook += CharmUpdate;
             On.HeroController.Move += Move;
+
+            ModHooks.Instance.TakeHealthHook += TakeHealth;
+            ModHooks.Instance.SoulGainHook += SoulGain;
+            ModHooks.Instance.HeroUpdateHook += Update;
+            ModHooks.Instance.CharmUpdateHook += CharmUpdate;
             ModHooks.Instance.LanguageGetHook += LangGet;
             ModHooks.Instance.BlueHealthHook += BlueHealth;
+            
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoadedHook;
 
             Assembly asm = Assembly.GetExecutingAssembly();
@@ -743,17 +725,18 @@ namespace Lightbringer
 
         private void Move(On.HeroController.orig_Move orig, HeroController self, float moveDirection)
         {
-            // ReSharper disable once NotAccessedVariable
             float panicSpeed = 1f;
             if (HeroController.instance.playerData.equippedCharm_2)
             {
                 int missingHealth = HeroController.instance.playerData.maxHealth -
                                     HeroController.instance.playerData.health;
-                // ReSharper disable once RedundantAssignment
                 panicSpeed += missingHealth * .03f;
             }
 
-            orig(self, moveDirection);
+            orig(self, !HeroController.instance.cState.inWalkZone && HeroController.instance.inAcid
+                ? moveDirection * panicSpeed
+                : moveDirection
+            );
         }
 
 
@@ -820,11 +803,6 @@ namespace Lightbringer
                     cg.alpha = 0;
                     GameManager.instance.StartCoroutine(CanvasUtil.FadeInCanvasGroup(cg));
                 }
-            }
-
-            foreach (GameObject i in _gruzMinions.Where(x => x != null))
-            {
-                Object.Destroy(i);
             }
 
             //if (_gruzMinion != null)
@@ -906,36 +884,14 @@ namespace Lightbringer
             }
         }
 
-        private void TakeHealth(On.PlayerData.orig_TakeHealth orig, PlayerData self, int amount)
+        // private void TakeHealth(On.PlayerData.orig_TakeHealth orig, PlayerData self, int amount)
+        private int TakeHealth(int amount)
         {
             PlayerData.instance.ghostCoins = 1; // for timefracture
 
-            if (PlayerData.instance.equippedCharm_6)
-            {
-                PlayerData.instance.health = 0;
-                return;
-            }
-
-            if (PlayerData.instance.healthBlue > 0)
-            {
-                PlayerData.instance.damagedBlue = true;
-                PlayerData.instance.healthBlue -= amount;
-                if (PlayerData.instance.healthBlue < 0)
-                {
-                    PlayerData.instance.health += PlayerData.instance.healthBlue;
-                }
-            }
-            else
-            {
-                PlayerData.instance.damagedBlue = false;
-                if (PlayerData.instance.health - amount <= 0)
-                {
-                    PlayerData.instance.health = 0;
-                    return;
-                }
-
-                PlayerData.instance.health -= amount;
-            }
+            if (!PlayerData.instance.equippedCharm_6) return amount;
+            PlayerData.instance.health = 0;
+            return 0;
         }
 
         //private void Update(On.HeroController.orig_Update orig, HeroController self)
@@ -1030,35 +986,6 @@ namespace Lightbringer
 
             // END MOD CODE
             //orig(self);
-        }
-
-        private void Update10(On.HeroController.orig_Update10 orig, HeroController self)
-        {
-            if (GetAttr<bool>(self, "isGameplayScene"))
-            {
-                Vector2 vector = self.transform.position;
-                if (vector.y >= -60f && vector.y <= GameManager.instance.sceneHeight + 60f && vector.x >= -60f &&
-                    vector.x <= GameManager.instance.sceneWidth + 60f || self.cState.dead ||
-                    !GetAttr<bool>(self, "boundsChecking"))
-                {
-                }
-            }
-
-            float scaleX = self.transform.GetScaleX();
-            if (scaleX < -1f)
-            {
-                self.transform.SetScaleX(-Math.Abs(self.transform.GetScaleX()));
-            }
-
-            if (scaleX > 1f)
-            {
-                self.transform.SetScaleX(Math.Abs(self.transform.GetScaleX()));
-            }
-
-            if (self.transform.position.z != 0.004f)
-            {
-                self.transform.SetPositionZ(0.004f);
-            }
         }
     }
 }
