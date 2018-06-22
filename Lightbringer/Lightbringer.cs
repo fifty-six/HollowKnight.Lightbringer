@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,7 @@ using GlobalEnums;
 using HutongGames.PlayMaker;
 using ModCommon;
 using Modding;
-using On.HutongGames.PlayMaker.Actions;
+using HutongGames.PlayMaker.Actions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -270,12 +271,10 @@ namespace Lightbringer
         private float _origRunSpeed = 8.3f;
         private float _origRunSpeedCh = 10f;
         private float _origRunSpeedChCombo = 11.5f;
-        
+
         private void AfterSaveGameLoad(SaveGameData data)
         {
-            // _origRunSpeed = HeroController.instance.RUN_SPEED;
-            // _origRunSpeedCh = HeroController.instance.RUN_SPEED_CH;
-            // _origRunSpeedChCombo = HeroController.instance.RUN_SPEED_CH_COMBO;
+            return;
         }
 
         private int Health(int amount)
