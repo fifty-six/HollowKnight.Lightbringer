@@ -220,8 +220,10 @@ namespace Lightbringer
             On.HeroController.Attack += Attack;
             On.PlayerData.AddGeo += AddGeo;
             On.NailSlash.StartSlash += StartSlash;
-            On.HeroController.Move += Move;
 
+            ModHooks.Instance.AfterSavegameLoadHook += AfterSaveGameLoad;
+            ModHooks.Instance.BeforeAddHealthHook += Health;
+            ModHooks.Instance.TakeHealthHook += Health;
             ModHooks.Instance.DoAttackHook += DoAttack;
             ModHooks.Instance.AfterAttackHook += AfterAttack;
             ModHooks.Instance.TakeHealthHook += TakeHealth;
@@ -263,6 +265,37 @@ namespace Lightbringer
                     Log("Created sprite from embedded image: " + res);
                 }
             }
+        }
+
+        private float _origRunSpeed = 8.3f;
+        private float _origRunSpeedCh = 10f;
+        private float _origRunSpeedChCombo = 11.5f;
+        
+        private void AfterSaveGameLoad(SaveGameData data)
+            // _origRunSpeed = HeroController.instance.RUN_SPEED;
+            // _origRunSpeedCh = HeroController.instance.RUN_SPEED_CH;
+            // _origRunSpeedChCombo = HeroController.instance.RUN_SPEED_CH_COMBO;
+        }
+
+        private int Health(int amount)
+        {
+            float panicSpeed = 1f;
+            if (HeroController.instance.playerData.equippedCharm_2)
+            {
+                int missingHealth = HeroController.instance.playerData.maxHealth -
+                                    HeroController.instance.playerData.health;
+                panicSpeed += missingHealth * .03f;
+                HeroController.instance.RUN_SPEED = _origRunSpeed * panicSpeed;
+                HeroController.instance.RUN_SPEED_CH = _origRunSpeedCh * panicSpeed;
+                HeroController.instance.RUN_SPEED_CH_COMBO = _origRunSpeedChCombo * panicSpeed;
+            }
+            else
+            {
+                HeroController.instance.RUN_SPEED = _origRunSpeed;
+                HeroController.instance.RUN_SPEED_CH = _origRunSpeedCh;
+                HeroController.instance.RUN_SPEED_CH_COMBO = _origRunSpeedChCombo;
+            }
+            return amount;
         }
 
         private float _origNailTerrainCheckTime;
@@ -649,7 +682,6 @@ namespace Lightbringer
             }
         }
 
-        //private void CharmUpdate(On.HeroController.orig_CharmUpdate orig, HeroController self)
         private void CharmUpdate(PlayerData pd, HeroController self)
         {
             // Tiny Shell charm
@@ -662,6 +694,13 @@ namespace Lightbringer
             {
                 self.transform.SetScaleX(1f * Math.Sign(self.transform.GetScaleX()));
                 self.transform.SetScaleY(1f * Math.Sign(self.transform.GetScaleY()));
+            }
+
+            if (!PlayerData.instance.equippedCharm_2)
+            {
+                HeroController.instance.RUN_SPEED = _origRunSpeed;
+                HeroController.instance.RUN_SPEED_CH = _origRunSpeedCh;
+                HeroController.instance.RUN_SPEED_CH_COMBO = _origRunSpeedChCombo;
             }
 
             pd.isInvincible = false;
@@ -827,7 +866,6 @@ namespace Lightbringer
             // find and save data for Empress Muzznik
         }
 
-        // private void SoulGain(On.HeroController.orig_SoulGain orig, HeroController self)
         private int SoulGain(int amount)
         {
             if (!HeroController.instance.playerData.equippedCharm_15) return 0;
@@ -870,7 +908,6 @@ namespace Lightbringer
             }
         }
 
-        // private void TakeHealth(On.PlayerData.orig_TakeHealth orig, PlayerData self, int amount)
         private int TakeHealth(int amount)
         {
             PlayerData.instance.ghostCoins = 1; // for timefracture
@@ -880,7 +917,6 @@ namespace Lightbringer
             return 0;
         }
 
-        //private void Update(On.HeroController.orig_Update orig, HeroController self)
         private void Update()
         {
             if (_timefracture < 1f || HeroController.instance.playerData.ghostCoins == 1)
