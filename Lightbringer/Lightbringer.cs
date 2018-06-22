@@ -126,6 +126,8 @@ namespace Lightbringer
 
         private int _hitNumber;
 
+        internal static Lightbringer Instance;
+
         // Lost Kins variables
         private GameObject _kin;
 
@@ -152,7 +154,7 @@ namespace Lightbringer
             set => SetAttr(HeroController.instance, "grubberFlyBeam", value);
         }
 
-        private SpriteFlash SpriteFlash => GetAttr<SpriteFlash>(HeroController.instance, "spriteFlash");
+        internal SpriteFlash SpriteFlash => GetAttr<SpriteFlash>(HeroController.instance, "spriteFlash");
 
         private static readonly Dictionary<Type, Dictionary<string, FieldInfo>> Fields =
             new Dictionary<Type, Dictionary<string, FieldInfo>>();
@@ -181,7 +183,7 @@ namespace Lightbringer
             return (T) typeFields[name]?.GetValue(obj);
         }
 
-        private Dictionary<string, Sprite> _sprites;
+        internal Dictionary<string, Sprite> Sprites;
 
         // down isn't here cause elegy doesn't have it
         private enum BeamDirection
@@ -229,6 +231,8 @@ namespace Lightbringer
 
         public override void Initialize()
         {
+            Instance = this;
+            
             On.HeroController.Attack += Attack;
             On.HeroController.DoAttack += DoAttack;
             On.HeroController.SoulGain += SoulGain;
@@ -247,7 +251,7 @@ namespace Lightbringer
 
             Assembly asm = Assembly.GetExecutingAssembly();
 
-            _sprites = new Dictionary<string, Sprite>();
+            Sprites = new Dictionary<string, Sprite>();
             foreach (string res in asm.GetManifestResourceNames())
             {
                 if (!res.EndsWith(".png"))
@@ -269,12 +273,11 @@ namespace Lightbringer
 
                     //Create sprite from texture
                     //Substring is to cut off the Lightbringer. and the .png
-                    _sprites.Add(res.Substring(13, res.Length-17),
+                    Sprites.Add(res.Substring(13, res.Length - 17),
                         Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)));
-                        
+
                     Log("Created sprite from embedded image: " + res);
                 }
-
             }
         }
 
@@ -770,10 +773,10 @@ namespace Lightbringer
             yield return null;
 
             HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
-                .mainTexture = _sprites["Lances"].texture;
+                .mainTexture = Sprites["Lances"].texture;
 
             GameManager.instance.inventoryFSM.gameObject.PrintSceneHierarchyTree("urgay3");
-            
+
             // Text Display code
             if (_canvas == null)
             {
@@ -795,7 +798,7 @@ namespace Lightbringer
 
 
                 // TODO: Remove this.
-                foreach (KeyValuePair<string, Sprite> spritePair in _sprites)
+                foreach (KeyValuePair<string, Sprite> spritePair in Sprites)
                 {
                     GameObject unused =
                         CanvasUtil.CreateImagePanel(_canvas, spritePair.Value,
@@ -842,6 +845,13 @@ namespace Lightbringer
                 _textObj.text = "You are unworthy. Come back when you are stronger.";
                 _textObj.CrossFadeAlpha(1f, 0f, false);
                 _textObj.CrossFadeAlpha(0f, 7f, false);
+            }
+
+            if (_gruz != null) yield break;
+            _gruz = GameObject.Find("Giant Fly");
+            if (_gruz != null)
+            {
+                _gruz.AddComponent<Muzznik>();
             }
 
 
@@ -936,41 +946,13 @@ namespace Lightbringer
                 Time.timeScale = _timefracture;
             }
 
-            if (_kin != null && PlayerData.instance.geo == 753)
-            {
-                int kinHp = _kinHealth.hp;
-                if (!_kinFight[0] && kinHp < 400)
-                {
-                    _kinFight[0] = true;
-                    HeroController.instance.playerData.isInvincible = true; // temporary invincibility iFrames
-                    SpriteFlash.flash(Color.black, 0.6f, 0.15f, 0f, 0.55f);
-                    _kinFight[5] = true; // iFrames
-                    _kinTwo = Object.Instantiate(_kin);
-                    _kinTwo.GetComponent<HealthManager>().hp = 99999;
-                }
-                else if (_kinFight[5]) // iFrames
-                {
-                    _invincibleTime += Time.deltaTime;
-                    if (_invincibleTime >= 5.5f)
-                    {
-                        HeroController.instance.playerData.isInvincible = false;
-                        _kinFight[5] = false;
-                    }
-                }
-                else if (!_kinFight[1] && kinHp < 1)
-                {
-                    _kinFight[1] = true;
-                    _kinTwo.GetComponent<HealthManager>().hp = 1;
-                }
-            }
-            else if (_kin == null && PlayerData.instance.geo == 753
-            ) // && GameManager.instance.sceneName == "Dream_03_Infected_Knight")
+            // Double Kin
+            if (_kin == null && PlayerData.instance.geo == 753) 
             {
                 _kin = GameObject.Find("Lost Kin");
                 if (_kin != null)
                 {
-                    _kinHealth = _kin.GetComponent<HealthManager>();
-                    _kinFight = new bool[12];
+                    _kin.AddComponent<DoubleKin>();
                 }
             }
 
@@ -980,132 +962,54 @@ namespace Lightbringer
                 _gruz = GameObject.Find("Giant Fly");
                 if (_gruz != null)
                 {
-                    _gruz.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material.mainTexture =
-                        _sprites["Muzznik"].texture;
-                    _gruzHealth = _gruz.GetComponent<HealthManager>();
-                    _gruzHealth.hp = 1500;
-                    _gruzFight = new bool[12];
-                    _gruzMinions = new GameObject[16];
-                    _gruzMinion = GameObject.Find("Fly");
-                    _gruzMinion.transform.SetScaleY(-1f);
-                    _gruzMinion.GetComponent<HealthManager>().hp = 99999;
+                    _gruz.AddComponent<Muzznik>();
                 }
             }
-            else
-            {
-                int gruzHp = _gruzHealth.hp;
-                if (!_gruzFight[0] && gruzHp < 1470)
-                {
-                    _gruzFight[0] = true;
-                    _gruzMinions[0] = _gruzMinion.Spawn(_gruz.transform.position); // dud
-                    _gruzMinions[1] = _gruzMinion.Spawn(_gruz.transform.position);
-                    _gruzMinions[1].transform.SetScaleX(1.3f);
-                    _gruzMinions[1].transform.SetScaleY(-1.3f);
-                }
-                else if (!_gruzFight[1] && gruzHp < 1100)
-                {
-                    _gruzFight[1] = true;
-                    _gruzMinions[2] = _gruzMinion.Spawn(_gruz.transform.position);
-                }
-                else if (!_gruzFight[2] && gruzHp < 800)
-                {
-                    _gruzFight[2] = true;
-                    _gruzMinions[3] = _gruzMinion.Spawn(_gruz.transform.position);
-                    _gruzMinions[3].transform.SetScaleX(.8f);
-                    _gruzMinions[3].transform.SetScaleY(-.8f);
-                }
-                else if (!_gruzFight[3] && gruzHp < 600)
-                {
-                    _gruzFight[3] = true;
-                    _gruzMinions[4] = _gruzMinion.Spawn(_gruz.transform.position);
-                    _gruzMinions[4].transform.SetScaleX(.8f);
-                    _gruzMinions[4].transform.SetScaleY(-.8f);
-                }
-                else if (!_gruzFight[4] && gruzHp < 500)
-                {
-                    _gruzFight[4] = true;
-                    _gruzMinions[5] = _gruzMinion.Spawn(_gruz.transform.position);
-                }
-                else if (!_gruzFight[5] && gruzHp < 400)
-                {
-                    _gruzFight[5] = true;
-                    _gruzMinions[6] = _gruzMinion.Spawn(_gruz.transform.position);
-                }
-                else if (!_gruzFight[6] && gruzHp < 300)
-                {
-                    _gruzFight[6] = true;
-                    _gruzMinions[7] = _gruzMinion.Spawn(_gruz.transform.position);
-                }
-                else if (!_gruzFight[7] && gruzHp < 200)
-                {
-                    _gruzFight[7] = true;
-                    _gruzMinions[8] = _gruzMinion.Spawn(_gruz.transform.position);
-                    _gruzMinions[9] = _gruzMinion.Spawn(_gruz.transform.position);
-                }
-                else if (!_gruzFight[8] && gruzHp < 100)
-                {
-                    _gruzFight[8] = true;
-                    _gruzMinions[10] = _gruzMinion.Spawn(_gruz.transform.position);
-                    _gruzMinions[11] = _gruzMinion.Spawn(_gruz.transform.position);
-                }
-                else if (!_gruzFight[9] && gruzHp < 1)
-                {
-                    _gruzFight[9] = true;
-                    _gruzMinion.GetComponent<HealthManager>().hp = 1;
-                    //FSMUtility.SetInt(FSMUtility.LocateFSM(GruzMinion, "health_manager_enemy"), "HP", 1);
-                    for (int i = 0; i < 12; i++)
-                    {
-                        _gruzMinions[i].GetComponent<HealthManager>().hp = 1;
-                    }
-
-                    _gruz = null;
-                }
-            }
-
+            
             _manaRegenTime += Time.deltaTime * Time.timeScale;
             if (_manaRegenTime >= 1.11f && GameManager.instance.soulOrb_fsm != null)
             {
-                    // Mana regen
-                    _manaRegenTime -= 1.11f;
-                    HeroController.instance.AddMPChargeSpa(1);
-                    foreach (int i in new int[] {17, 19, 34, 30, 28, 22, 25})
+                // Mana regen
+                _manaRegenTime -= 1.11f;
+                HeroController.instance.AddMPChargeSpa(1);
+                foreach (int i in new int[] {17, 19, 34, 30, 28, 22, 25})
+                {
+                    //if (PlayerData.instance.GetBool("equippedCharm_" + i) &&
+                    if (GetAttr<bool>(PlayerData.instance, "equippedCharm_" + i) &&
+                        (i != 25 || !PlayerData.instance.brokenCharm_25))
                     {
-                        //if (PlayerData.instance.GetBool("equippedCharm_" + i) &&
-                        if (GetAttr<bool>(PlayerData.instance, "equippedCharm_" + i) &&
-                            (i != 25 || !PlayerData.instance.brokenCharm_25))
-                        {
-                            HeroController.instance.AddMPChargeSpa(1);
-                        }
+                        HeroController.instance.AddMPChargeSpa(1);
                     }
+                }
 
-                    // Easter Egg
-                    if (PlayerData.instance.geo == 753)
+                // Easter Egg
+                if (PlayerData.instance.geo == 753)
+                {
+                    HeroController.instance.AddMPChargeSpa(3);
+                    int num = new Random().Next(1, 6);
+                    switch (num)
                     {
-                        HeroController.instance.AddMPChargeSpa(3);
-                        int num = new Random().Next(1, 6);
-                        switch (num)
-                        {
-                            case 1:
-                                SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
-                                break;
-                            case 2:
-                                SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
-                                break;
-                            case 3:
-                                SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
-                                break;
-                            case 4:
-                                SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
-                                break;
-                            default:
-                                SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
-                                break;
-                        }
+                        case 1:
+                            SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
+                            break;
+                        case 2:
+                            SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
+                            break;
+                        case 3:
+                            SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
+                            break;
+                        case 4:
+                            SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
+                            break;
+                        default:
+                            SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
+                            break;
                     }
-                    else if (PlayerData.instance.equippedCharm_6)
-                    {
-                        SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
-                    }
+                }
+                else if (PlayerData.instance.equippedCharm_6)
+                {
+                    SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
+                }
             }
 
             if (!HeroController.instance.playerData.equippedCharm_26) return;
@@ -1149,6 +1053,5 @@ namespace Lightbringer
                 self.transform.SetPositionZ(0.004f);
             }
         }
-
     }
 }
