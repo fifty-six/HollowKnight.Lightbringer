@@ -272,6 +272,7 @@ namespace Lightbringer
         private float _origRunSpeedChCombo = 11.5f;
         
         private void AfterSaveGameLoad(SaveGameData data)
+        {
             // _origRunSpeed = HeroController.instance.RUN_SPEED;
             // _origRunSpeedCh = HeroController.instance.RUN_SPEED_CH;
             // _origRunSpeedChCombo = HeroController.instance.RUN_SPEED_CH_COMBO;
