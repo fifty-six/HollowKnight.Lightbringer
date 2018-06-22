@@ -232,7 +232,8 @@ namespace Lightbringer
             On.HeroController.Attack += Attack;
             On.HeroController.DoAttack += DoAttack;
             On.HeroController.SoulGain += SoulGain;
-            On.HeroController.Update += Update;
+            // On.HeroController.Update += Update;
+            ModHooks.Instance.HeroUpdateHook += Update;
             On.HeroController.Update10 += Update10;
             On.PlayerData.AddGeo += AddGeo;
             On.PlayerData.TakeHealth += TakeHealth;
@@ -920,7 +921,8 @@ namespace Lightbringer
             }
         }
 
-        private void Update(On.HeroController.orig_Update orig, HeroController self)
+        //private void Update(On.HeroController.orig_Update orig, HeroController self)
+        private void Update()
         {
             if (_timefracture < 1f || HeroController.instance.playerData.ghostCoins == 1)
             {
@@ -1061,65 +1063,62 @@ namespace Lightbringer
             }
 
             _manaRegenTime += Time.deltaTime * Time.timeScale;
-            if (_manaRegenTime >= 1.11f)
+            if (_manaRegenTime >= 1.11f && GameManager.instance.soulOrb_fsm != null)
             {
-                // Mana regen
-                _manaRegenTime -= 1.11f;
-                HeroController.instance.AddMPChargeSpa(1);
-                foreach (int i in new int[] {17, 19, 34, 30, 28, 22, 25})
-                {
-                    if (PlayerData.instance.GetBool("equippedCharm_" + i) &&
-                        (i != 25 || !PlayerData.instance.brokenCharm_25))
+                    // Mana regen
+                    _manaRegenTime -= 1.11f;
+                    HeroController.instance.AddMPChargeSpa(1);
+                    foreach (int i in new int[] {17, 19, 34, 30, 28, 22, 25})
                     {
-                        HeroController.instance.AddMPChargeSpa(1);
+                        //if (PlayerData.instance.GetBool("equippedCharm_" + i) &&
+                        if (GetAttr<bool>(PlayerData.instance, "equippedCharm_" + i) &&
+                            (i != 25 || !PlayerData.instance.brokenCharm_25))
+                        {
+                            HeroController.instance.AddMPChargeSpa(1);
+                        }
                     }
-                }
 
-                // Easter Egg
-                if (HeroController.instance.playerData.geo == 753)
-                {
-                    HeroController.instance.AddMPChargeSpa(3);
-                    int num = new Random().Next(1, 6);
-                    switch (num)
+                    // Easter Egg
+                    if (PlayerData.instance.geo == 753)
                     {
-                        case 1:
-                            SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        case 2:
-                            SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        case 3:
-                            SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        case 4:
-                            SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        default:
-                            SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
+                        HeroController.instance.AddMPChargeSpa(3);
+                        int num = new Random().Next(1, 6);
+                        switch (num)
+                        {
+                            case 1:
+                                SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            case 2:
+                                SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            case 3:
+                                SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            case 4:
+                                SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            default:
+                                SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                        }
                     }
-                }
-                else if (HeroController.instance.playerData.equippedCharm_6)
-                {
-                    SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
-                }
+                    else if (PlayerData.instance.equippedCharm_6)
+                    {
+                        SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
+                    }
             }
 
-            if (HeroController.instance.playerData.equippedCharm_26) // Nailmaster's Passion
-            {
-                _passionTime += Time.deltaTime * Time.timeScale;
-                if (_passionTime >= 2f)
-                {
-                    _passionTime -= 2f;
-                    _passionDirection = !_passionDirection;
-                    float num2 = new Random().Next(3, 12);
-                    SpawnBeam(_passionDirection ? BeamDirection.Right : BeamDirection.Left, 1f, 1f,
-                        positionX: _passionDirection ? -num2 : num2, positionY: -0.5f + num2 / 6f, offset: true);
-                }
-            }
+            if (!HeroController.instance.playerData.equippedCharm_26) return;
+            _passionTime += Time.deltaTime * Time.timeScale;
+            if (!(_passionTime >= 2f)) return;
+            _passionTime -= 2f;
+            _passionDirection = !_passionDirection;
+            float num2 = new Random().Next(3, 12);
+            SpawnBeam(_passionDirection ? BeamDirection.Right : BeamDirection.Left, 1f, 1f,
+                positionX: _passionDirection ? -num2 : num2, positionY: -0.5f + num2 / 6f, offset: true);
 
             // END MOD CODE
-            orig(self);
+            //orig(self);
         }
 
         private void Update10(On.HeroController.orig_Update10 orig, HeroController self)
