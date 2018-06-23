@@ -20,7 +20,6 @@ namespace Lightbringer
     // ReSharper disable once UnusedMember.Global
     public class Lightbringer : Mod
     {
-        // Empress Muzznik variables
         private readonly Dictionary<string, string> _langDict = new Dictionary<string, string>
         {
             ["SHOP_DESC_GEOGATHERER"] =
@@ -218,22 +217,58 @@ namespace Lightbringer
         {
             Instance = this;
             
+            // Lance Spawn
             On.HeroController.Attack += Attack;
+            
+            // Faulty Wallet
             On.PlayerData.AddGeo += AddGeo;
+            
+            // Burning Blade, Fury
             On.NailSlash.StartSlash += StartSlash;
 
+            // Charm Values
+            // Restore Nail Damage
+            ModHooks.Instance.BeforeSavegameSaveHook += BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook += AfterSaveGameLoad;
+            ModHooks.Instance.SavegameSaveHook += SaveGameSave;
+            
+            // Panic Compass
             ModHooks.Instance.BeforeAddHealthHook += Health;
             ModHooks.Instance.TakeHealthHook += Health;
+            
+            // Don't hit walls w/ lances
             ModHooks.Instance.DoAttackHook += DoAttack;
             ModHooks.Instance.AfterAttackHook += AfterAttack;
+            
+            // Glass Soul
             ModHooks.Instance.TakeHealthHook += TakeHealth;
+            
+            // Disable Soul Gain
+            // Bloodlust
             ModHooks.Instance.SoulGainHook += SoulGain;
+            
+            // Soul Gen
+            // 753 Easter Egg
+            // Nailmaster's Passion
+            // Add Muzznik & DoubleKin Behaviours
             ModHooks.Instance.HeroUpdateHook += Update;
+            
+            // Beam Damage
+            // Ghosts
+            // Timescale
+            // Panic Compass
+            // Tiny Shell
             ModHooks.Instance.CharmUpdateHook += CharmUpdate;
+            
+            // Languages
             ModHooks.Instance.LanguageGetHook += LangGet;
+            
+            // Ascending Light won't give 2 hearts
             ModHooks.Instance.BlueHealthHook += BlueHealth;
             
+            // Lance Textures
+            // Canvas for Muzznik Text
+            // Soul Orb FSM
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoadedHook;
 
             Assembly asm = Assembly.GetExecutingAssembly();
@@ -268,14 +303,36 @@ namespace Lightbringer
             }
         }
 
-        private float _origRunSpeed = 8.3f;
-        private float _origRunSpeedCh = 10f;
-        private float _origRunSpeedChCombo = 11.5f;
+        private void AfterSaveGameLoad(SaveGameData data) => SaveGameSave();
 
-        private void AfterSaveGameLoad(SaveGameData data)
+        private void SaveGameSave(int id=0)
         {
-            return;
+            PlayerData.instance.charmCost_21 = 1; // Faulty Wallet update patch
+            PlayerData.instance.charmCost_19 = 4; // Eye of the Storm update patch
+            PlayerData.instance.charmCost_15 = 3; // Bloodlust update patch
+            PlayerData.instance.charmCost_14 = 2; // Glass Soul update patch
+            PlayerData.instance.charmCost_8 = 3; // Rising Light update patch
+            PlayerData.instance.charmCost_35 = 5; // Radiant Jewel update patch
+            PlayerData.instance.charmCost_18 = 3; // Silent Divide update patch
+            PlayerData.instance.charmCost_3 = 2; // Bloodsong update patch
         }
+
+        private void BeforeSaveGameSave(SaveGameData data)
+        {
+            PlayerData.instance.charmCost_21 = 4; 
+            PlayerData.instance.charmCost_19 = 3; 
+            PlayerData.instance.charmCost_15 = 2; 
+            PlayerData.instance.charmCost_14 = 1;
+            PlayerData.instance.charmCost_8 = 2; 
+            PlayerData.instance.charmCost_35 = 3;
+            PlayerData.instance.charmCost_18 = 2;
+            PlayerData.instance.charmCost_3 = 1;
+            PlayerData.instance.nailDamage = PlayerData.instance.nailSmithUpgrades * 4 + 5;
+        }
+
+        private const float ORIG_RUN_SPEED = 8.3f;
+        private const float ORIG_RUN_SPEED_CH = 10f;
+        private const float ORIG_RUN_SPEED_CH_COMBO = 11.5f;
 
         private int Health(int amount)
         {
@@ -285,15 +342,15 @@ namespace Lightbringer
                 int missingHealth = HeroController.instance.playerData.maxHealth -
                                     HeroController.instance.playerData.health;
                 panicSpeed += missingHealth * .03f;
-                HeroController.instance.RUN_SPEED = _origRunSpeed * panicSpeed;
-                HeroController.instance.RUN_SPEED_CH = _origRunSpeedCh * panicSpeed;
-                HeroController.instance.RUN_SPEED_CH_COMBO = _origRunSpeedChCombo * panicSpeed;
+                HeroController.instance.RUN_SPEED = ORIG_RUN_SPEED * panicSpeed;
+                HeroController.instance.RUN_SPEED_CH = ORIG_RUN_SPEED_CH * panicSpeed;
+                HeroController.instance.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO * panicSpeed;
             }
             else
             {
-                HeroController.instance.RUN_SPEED = _origRunSpeed;
-                HeroController.instance.RUN_SPEED_CH = _origRunSpeedCh;
-                HeroController.instance.RUN_SPEED_CH_COMBO = _origRunSpeedChCombo;
+                HeroController.instance.RUN_SPEED = ORIG_RUN_SPEED;
+                HeroController.instance.RUN_SPEED_CH = ORIG_RUN_SPEED_CH;
+                HeroController.instance.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO;
             }
             return amount;
         }
@@ -698,23 +755,14 @@ namespace Lightbringer
 
             if (!PlayerData.instance.equippedCharm_2)
             {
-                HeroController.instance.RUN_SPEED = _origRunSpeed;
-                HeroController.instance.RUN_SPEED_CH = _origRunSpeedCh;
-                HeroController.instance.RUN_SPEED_CH_COMBO = _origRunSpeedChCombo;
+                HeroController.instance.RUN_SPEED = ORIG_RUN_SPEED;
+                HeroController.instance.RUN_SPEED_CH = ORIG_RUN_SPEED_CH;
+                HeroController.instance.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO;
             }
 
             pd.isInvincible = false;
             Time.timeScale = 1f; // reset time to normal
             _timefracture = 1f; // reset time to normal
-
-            pd.charmCost_21 = 1; // Faulty Wallet update patch
-            pd.charmCost_19 = 4; // Eye of the Storm update patch
-            pd.charmCost_15 = 3; // Bloodlust update patch
-            pd.charmCost_14 = 2; // Glass Soul update patch
-            pd.charmCost_8 = 3; // Rising Light update patch
-            pd.charmCost_35 = 5; // Radiant Jewel update patch
-            pd.charmCost_18 = 3; // Silent Divide update patch
-            pd.charmCost_3 = 2; // Bloodsong update patch
 
             // Respawn all ghosts and pin them!
             pd.galienPinned = true;
@@ -788,8 +836,6 @@ namespace Lightbringer
             HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
                 .mainTexture = Sprites["Lances"].texture;
 
-            GameManager.instance.inventoryFSM.gameObject.PrintSceneHierarchyTree("urgay3");
-
             // Text Display code
             if (_canvas == null)
             {
@@ -809,29 +855,7 @@ namespace Lightbringer
                 _textObj.text = "";
                 _textObj.fontSize = 42;
 
-
-                // TODO: Remove this.
-                foreach (KeyValuePair<string, Sprite> spritePair in Sprites)
-                {
-                    GameObject unused =
-                        CanvasUtil.CreateImagePanel(_canvas, spritePair.Value,
-                            new CanvasUtil.RectData(
-                                new Vector2(0, 50),
-                                new Vector2(0, 45),
-                                new Vector2(0, 0),
-                                new Vector2(1, 0),
-                                new Vector2(0.5f, 0.5f)));
-                    unused.GetComponent<Image>().preserveAspect = true;
-                    CanvasGroup cg = unused.AddComponent<CanvasGroup>();
-                    cg.blocksRaycasts = true;
-                    cg.interactable = true;
-                    cg.alpha = 0;
-                    GameManager.instance.StartCoroutine(CanvasUtil.FadeInCanvasGroup(cg));
-                }
             }
-
-            //if (_gruzMinion != null)
-            //    Object.Destroy(_gruzMinion);
 
             // Empress Muzznik
             PlayerData.instance.CountGameCompletion();
@@ -854,16 +878,6 @@ namespace Lightbringer
                 _textObj.CrossFadeAlpha(1f, 0f, false);
                 _textObj.CrossFadeAlpha(0f, 7f, false);
             }
-
-            if (_gruz != null) yield break;
-            _gruz = GameObject.Find("Giant Fly");
-            if (_gruz != null)
-            {
-                _gruz.AddComponent<Muzznik>();
-            }
-
-
-            // find and save data for Empress Muzznik
         }
 
         private int SoulGain(int amount)
