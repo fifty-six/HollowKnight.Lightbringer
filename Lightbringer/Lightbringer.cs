@@ -817,6 +817,9 @@ namespace Lightbringer
 
         private void CharmUpdate(PlayerData pd, HeroController self)
         {
+            // Charm Costs
+            SaveGameSave();
+            
             // Tiny Shell charm
             if (PlayerData.instance.equippedCharm_4)
             {
