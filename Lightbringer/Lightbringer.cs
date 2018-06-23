@@ -350,24 +350,29 @@ namespace Lightbringer
 
         private IEnumerator ChangeSprites()
         {
-            while (CharmIconList.Instance == null)
+            while (CharmIconList.Instance == null || GameManager.instance == null || HeroController.instance == null || Sprites.Count < 20)
             {
                 yield return null;
             }
-
+            
             foreach (int i in new int[] {2, 3, 4, 6, 8, 13, 14, 15, 18, 19, 20, 21, 25, 26, 35})
             {
                 CharmIconList.Instance.spriteList[i] = Sprites["Charms." + i];
+                Log("Changed Sprite: Charms." + i);
             }
             
             CharmIconList.Instance.unbreakableStrength = Sprites["Charms.ustr"];
+            Log("Changed Sprite: Charms.ustr");
             
             GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("25")
                 .LocateMyFSM("charm_show_if_collected").GetAction<SetSpriteRendererSprite>("Glass Attack", 2).sprite
                 .Value = Sprites["Charms.brokestr"];
             
+            Log("Changed Sprite: Charms.brokestr");
+            
             HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
                 .mainTexture = Sprites["Lances"].texture;
+            Log("Changed Sprite: Lances");
 
             InvNailSprite invNailSprite = GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("Nail")
                 .GetComponent<InvNailSprite>();
@@ -376,6 +381,7 @@ namespace Lightbringer
             invNailSprite.level3 = Sprites["LanceInv"];
             invNailSprite.level4 = Sprites["LanceInv"];
             invNailSprite.level5 = Sprites["LanceInv"];
+            Log("Changed Sprite: invNailSprite");
             
             Log("Changed Sprites!");
         }
