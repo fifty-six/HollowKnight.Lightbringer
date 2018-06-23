@@ -56,14 +56,32 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DoubleKin.cs" />
+    <Compile Include="FsmUtil.cs" />
     <Compile Include="Lightbringer.cs" />
     <Compile Include="Muzznik.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="_0005_charm_fury.png" />
-    <EmbeddedResource Include="Muzznik.png" />
-    <EmbeddedResource Include="Lances.png" />
+    <EmbeddedResource Include="Resources\Charms\2.png" />
+    <EmbeddedResource Include="Resources\Charms\3.png" />
+    <EmbeddedResource Include="Resources\Charms\4.png" />
+    <EmbeddedResource Include="Resources\Charms\6.png" />
+    <EmbeddedResource Include="Resources\Charms\8.png" />
+    <EmbeddedResource Include="Resources\Charms\13.png" />
+    <EmbeddedResource Include="Resources\Charms\14.png" />
+    <EmbeddedResource Include="Resources\Charms\15.png" />
+    <EmbeddedResource Include="Resources\Charms\18.png" />
+    <EmbeddedResource Include="Resources\Charms\19.png" />
+    <EmbeddedResource Include="Resources\Charms\20.png" />
+    <EmbeddedResource Include="Resources\Charms\21.png" />
+    <EmbeddedResource Include="Resources\Charms\25.png" />
+    <EmbeddedResource Include="Resources\Charms\26.png" />
+    <EmbeddedResource Include="Resources\Charms\35.png" />
+    <EmbeddedResource Include="Resources\Charms\brokestr.png" />
+    <EmbeddedResource Include="Resources\Charms\ustr.png" />
+    <EmbeddedResource Include="Resources\Muzznik.png" />
+    <EmbeddedResource Include="Resources\Lances.png" />
+    <EmbeddedResource Include="Resources\LanceInv.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

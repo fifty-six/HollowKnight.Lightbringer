@@ -17,8 +17,8 @@ using Random = System.Random;
 
 namespace Lightbringer
 {
-    // ReSharper disable once UnusedMember.Global
-    public class Lightbringer : Mod
+    // ReSharper disable once ClassNeverInstantiated.Global
+    public class Lightbringer : Mod, ITogglableMod
     {
         private readonly Dictionary<string, string> _langDict = new Dictionary<string, string>
         {
@@ -112,7 +112,9 @@ namespace Lightbringer
             ["SHOP_DESC_WAYWARDCOMPASS"] =
                 "Highly recommended! If you're having trouble finding your way in the maze of ruins below us, try this charm.\n\nIt will pinpoint your location on your map, and even help you get around a bit quicker!",
             ["CHARM_DESC_4"] =
-                "A shell suited for someone tiny yet tough. When recovering from damage, the bearer will remain invulnerable for longer.\n\nDecreases your size by 25%."
+                "A shell suited for someone tiny yet tough. When recovering from damage, the bearer will remain invulnerable for longer.\n\nDecreases your size by 25%.",
+            ["BIGFLY_MAIN"] = "EMPRESS",
+            ["BIGFLY_SUB"] = "MUZZNIK"
         };
 
         private GameObject _gruz;
@@ -216,7 +218,10 @@ namespace Lightbringer
         public override void Initialize()
         {
             Instance = this;
-            
+
+            // Sprites!
+            On.ShopItemStats.Awake += Awake;
+
             // Lance Spawn
             On.HeroController.Attack += Attack;
             
@@ -228,6 +233,7 @@ namespace Lightbringer
 
             // Charm Values
             // Restore Nail Damage
+            // SPRITES!
             ModHooks.Instance.BeforeSavegameSaveHook += BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook += AfterSaveGameLoad;
             ModHooks.Instance.SavegameSaveHook += SaveGameSave;
@@ -260,7 +266,7 @@ namespace Lightbringer
             // Tiny Shell
             ModHooks.Instance.CharmUpdateHook += CharmUpdate;
             
-            // Languages
+            // Custom Text
             ModHooks.Instance.LanguageGetHook += LangGet;
             
             // Ascending Light won't give 2 hearts
@@ -295,15 +301,85 @@ namespace Lightbringer
 
                     //Create sprite from texture
                     //Substring is to cut off the Lightbringer. and the .png
-                    Sprites.Add(res.Substring(13, res.Length - 17),
+                    Sprites.Add(res.Substring(23, res.Length - 27),
                         Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)));
 
                     Log("Created sprite from embedded image: " + res);
                 }
             }
         }
+        
+        public void Unload()
+        {
+            On.ShopItemStats.Awake -= Awake;
+            On.HeroController.Attack -= Attack;
+            On.PlayerData.AddGeo -= AddGeo;
+            On.NailSlash.StartSlash -= StartSlash;
+            ModHooks.Instance.BeforeSavegameSaveHook -= BeforeSaveGameSave;
+            ModHooks.Instance.AfterSavegameLoadHook -= AfterSaveGameLoad;
+            ModHooks.Instance.SavegameSaveHook -= SaveGameSave;
+            ModHooks.Instance.TakeHealthHook -= Health;
+            ModHooks.Instance.DoAttackHook -= DoAttack;
+            ModHooks.Instance.AfterAttackHook -= AfterAttack;
+            ModHooks.Instance.TakeHealthHook -= TakeHealth;
+            ModHooks.Instance.SoulGainHook -= SoulGain;
+            ModHooks.Instance.HeroUpdateHook -= Update;
+            ModHooks.Instance.CharmUpdateHook -= CharmUpdate;
+            ModHooks.Instance.LanguageGetHook -= LangGet;
+            ModHooks.Instance.BlueHealthHook -= BlueHealth;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= SceneLoadedHook;
+            
+            if (PlayerData.instance != null)
+                BeforeSaveGameSave();
+        }
 
-        private void AfterSaveGameLoad(SaveGameData data) => SaveGameSave();
+
+        private void Awake(On.ShopItemStats.orig_Awake orig, ShopItemStats self)
+        {
+            orig(self);
+            if (!self.playerDataBoolName.StartsWith("gotCharm_")) return;
+            GetAttr<GameObject>(self, "itemSprite").GetComponent<SpriteRenderer>().sprite =
+                Sprites["Charms." + self.playerDataBoolName.TrimStart("gotCharm_".ToCharArray())];
+        }
+
+        private void AfterSaveGameLoad(SaveGameData data)
+        {
+            SaveGameSave();
+            GameManager.instance.StartCoroutine(ChangeSprites());
+        }
+
+        private IEnumerator ChangeSprites()
+        {
+            while (CharmIconList.Instance == null)
+            {
+                yield return null;
+            }
+
+            foreach (int i in new int[] {2, 3, 4, 6, 8, 13, 14, 15, 18, 19, 20, 21, 25, 26, 35})
+            {
+                CharmIconList.Instance.spriteList[i] = Sprites["Charms." + i];
+            }
+            
+            CharmIconList.Instance.unbreakableStrength = Sprites["Charms.ustr"];
+            
+            GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("25")
+                .LocateMyFSM("charm_show_if_collected").GetAction<SetSpriteRendererSprite>("Glass Attack", 2).sprite
+                .Value = Sprites["Charms.brokestr"];
+            
+            HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
+                .mainTexture = Sprites["Lances"].texture;
+
+            InvNailSprite invNailSprite = GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("Nail")
+                .GetComponent<InvNailSprite>();
+            invNailSprite.level1 = Sprites["LanceInv"];
+            invNailSprite.level2 = Sprites["LanceInv"];
+            invNailSprite.level3 = Sprites["LanceInv"];
+            invNailSprite.level4 = Sprites["LanceInv"];
+            invNailSprite.level5 = Sprites["LanceInv"];
+            
+            Log("Changed Sprites!");
+        }
+
 
         private void SaveGameSave(int id=0)
         {
@@ -317,7 +393,7 @@ namespace Lightbringer
             PlayerData.instance.charmCost_3 = 2; // Bloodsong update patch
         }
 
-        private void BeforeSaveGameSave(SaveGameData data)
+        private void BeforeSaveGameSave(SaveGameData data=null)
         {
             PlayerData.instance.charmCost_21 = 4; 
             PlayerData.instance.charmCost_19 = 3; 
@@ -833,9 +909,6 @@ namespace Lightbringer
             // ReSharper disable once PossibleNullReferenceException
             GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN").Name = "no";
 
-            HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
-                .mainTexture = Sprites["Lances"].texture;
-
             // Text Display code
             if (_canvas == null)
             {
@@ -854,7 +927,6 @@ namespace Lightbringer
                 _textObj.font = CanvasUtil.TrajanBold;
                 _textObj.text = "";
                 _textObj.fontSize = 42;
-
             }
 
             // Empress Muzznik
