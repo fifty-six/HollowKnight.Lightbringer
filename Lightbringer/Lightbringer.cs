@@ -118,7 +118,7 @@ namespace Lightbringer
         };
 
         private GameObject _gruz;
-        
+
         private GameObject _kin;
 
         private int _hitNumber;
@@ -224,10 +224,10 @@ namespace Lightbringer
 
             // Lance Spawn
             On.HeroController.Attack += Attack;
-            
+
             // Faulty Wallet
             On.PlayerData.AddGeo += AddGeo;
-            
+
             // Burning Blade, Fury
             On.NailSlash.StartSlash += StartSlash;
 
@@ -237,41 +237,41 @@ namespace Lightbringer
             ModHooks.Instance.BeforeSavegameSaveHook += BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook += AfterSaveGameLoad;
             ModHooks.Instance.SavegameSaveHook += SaveGameSave;
-            
+
             // Panic Compass
             ModHooks.Instance.BeforeAddHealthHook += Health;
             ModHooks.Instance.TakeHealthHook += Health;
-            
+
             // Don't hit walls w/ lances
             ModHooks.Instance.DoAttackHook += DoAttack;
             ModHooks.Instance.AfterAttackHook += AfterAttack;
-            
+
             // Glass Soul
             ModHooks.Instance.TakeHealthHook += TakeHealth;
-            
+
             // Disable Soul Gain
             // Bloodlust
             ModHooks.Instance.SoulGainHook += SoulGain;
-            
+
             // Soul Gen
             // 753 Easter Egg
             // Nailmaster's Passion
             // Add Muzznik & DoubleKin Behaviours
             ModHooks.Instance.HeroUpdateHook += Update;
-            
+
             // Beam Damage
             // Ghosts
             // Timescale
             // Panic Compass
             // Tiny Shell
             ModHooks.Instance.CharmUpdateHook += CharmUpdate;
-            
+
             // Custom Text
             ModHooks.Instance.LanguageGetHook += LangGet;
-            
+
             // Ascending Light won't give 2 hearts
             ModHooks.Instance.BlueHealthHook += BlueHealth;
-            
+
             // Lance Textures
             // Canvas for Muzznik Text
             // Soul Orb FSM
@@ -308,7 +308,7 @@ namespace Lightbringer
                 }
             }
         }
-        
+
         public void Unload()
         {
             On.ShopItemStats.Awake -= Awake;
@@ -328,7 +328,7 @@ namespace Lightbringer
             ModHooks.Instance.LanguageGetHook -= LangGet;
             ModHooks.Instance.BlueHealthHook -= BlueHealth;
             UnityEngine.SceneManagement.SceneManager.sceneLoaded -= SceneLoadedHook;
-            
+
             if (PlayerData.instance != null)
                 BeforeSaveGameSave();
         }
@@ -338,8 +338,9 @@ namespace Lightbringer
         {
             orig(self);
             if (!self.playerDataBoolName.StartsWith("gotCharm_")) return;
-            GetAttr<GameObject>(self, "itemSprite").GetComponent<SpriteRenderer>().sprite =
-                Sprites["Charms." + self.playerDataBoolName.TrimStart("gotCharm_".ToCharArray())];
+            string key = "Charms." + self.playerDataBoolName.TrimStart("gotCharm_".ToCharArray());
+            if (Sprites.ContainsKey(key))
+                GetAttr<GameObject>(self, "itemSprite").GetComponent<SpriteRenderer>().sprite = Sprites[key];
         }
 
         private void AfterSaveGameLoad(SaveGameData data)
@@ -354,22 +355,22 @@ namespace Lightbringer
             {
                 yield return null;
             }
-            
+
             foreach (int i in new int[] {2, 3, 4, 6, 8, 13, 14, 15, 18, 19, 20, 21, 25, 26, 35})
             {
                 CharmIconList.Instance.spriteList[i] = Sprites["Charms." + i];
                 Log("Changed Sprite: Charms." + i);
             }
-            
+
             CharmIconList.Instance.unbreakableStrength = Sprites["Charms.ustr"];
             Log("Changed Sprite: Charms.ustr");
-            
+
             GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("25")
                 .LocateMyFSM("charm_show_if_collected").GetAction<SetSpriteRendererSprite>("Glass Attack", 2).sprite
                 .Value = Sprites["Charms.brokestr"];
-            
+
             Log("Changed Sprite: Charms.brokestr");
-            
+
             HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
                 .mainTexture = Sprites["Lances"].texture;
             Log("Changed Sprite: Lances");
@@ -382,12 +383,12 @@ namespace Lightbringer
             invNailSprite.level4 = Sprites["LanceInv"];
             invNailSprite.level5 = Sprites["LanceInv"];
             Log("Changed Sprite: invNailSprite");
-            
+
             Log("Changed Sprites!");
         }
 
 
-        private void SaveGameSave(int id=0)
+        private void SaveGameSave(int id = 0)
         {
             PlayerData.instance.charmCost_21 = 1; // Faulty Wallet update patch
             PlayerData.instance.charmCost_19 = 4; // Eye of the Storm update patch
@@ -399,13 +400,13 @@ namespace Lightbringer
             PlayerData.instance.charmCost_3 = 2; // Bloodsong update patch
         }
 
-        private void BeforeSaveGameSave(SaveGameData data=null)
+        private void BeforeSaveGameSave(SaveGameData data = null)
         {
-            PlayerData.instance.charmCost_21 = 4; 
-            PlayerData.instance.charmCost_19 = 3; 
-            PlayerData.instance.charmCost_15 = 2; 
+            PlayerData.instance.charmCost_21 = 4;
+            PlayerData.instance.charmCost_19 = 3;
+            PlayerData.instance.charmCost_15 = 2;
             PlayerData.instance.charmCost_14 = 1;
-            PlayerData.instance.charmCost_8 = 2; 
+            PlayerData.instance.charmCost_8 = 2;
             PlayerData.instance.charmCost_35 = 3;
             PlayerData.instance.charmCost_18 = 2;
             PlayerData.instance.charmCost_3 = 1;
@@ -434,10 +435,12 @@ namespace Lightbringer
                 HeroController.instance.RUN_SPEED_CH = ORIG_RUN_SPEED_CH;
                 HeroController.instance.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO;
             }
+
             return amount;
         }
 
         private float _origNailTerrainCheckTime;
+
         private void DoAttack()
         {
             if (_origNailTerrainCheckTime == 0)
@@ -825,7 +828,7 @@ namespace Lightbringer
         {
             // Charm Costs
             SaveGameSave();
-            
+
             // Tiny Shell charm
             if (PlayerData.instance.equippedCharm_4)
             {
@@ -1027,7 +1030,7 @@ namespace Lightbringer
             }
 
             // Double Kin
-            if (_kin == null && PlayerData.instance.geo == 753) 
+            if (_kin == null && PlayerData.instance.geo == 753)
             {
                 _kin = GameObject.Find("Lost Kin");
                 if (_kin != null)
@@ -1045,7 +1048,7 @@ namespace Lightbringer
                     _gruz.AddComponent<Muzznik>();
                 }
             }
-            
+
             _manaRegenTime += Time.deltaTime * Time.timeScale;
             if (_manaRegenTime >= 1.11f && GameManager.instance.soulOrb_fsm != null)
             {
