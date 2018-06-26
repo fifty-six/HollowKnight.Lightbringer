@@ -337,8 +337,11 @@ namespace Lightbringer
         private void Awake(On.ShopItemStats.orig_Awake orig, ShopItemStats self)
         {
             orig(self);
-            if (!self.playerDataBoolName.StartsWith("gotCharm_")) return;
-            string key = "Charms." + self.playerDataBoolName.TrimStart("gotCharm_".ToCharArray());
+            
+            string pdbool = self.playerDataBoolName;
+            if (!pdbool.StartsWith("gotCharm_")) return;
+            
+            string key = "Charms." + pdbool.Substring(9, pdbool.Length - 9);
             if (Sprites.ContainsKey(key))
                 GetAttr<GameObject>(self, "itemSprite").GetComponent<SpriteRenderer>().sprite = Sprites[key];
         }
@@ -359,21 +362,16 @@ namespace Lightbringer
             foreach (int i in new int[] {2, 3, 4, 6, 8, 13, 14, 15, 18, 19, 20, 21, 25, 26, 35})
             {
                 CharmIconList.Instance.spriteList[i] = Sprites["Charms." + i];
-                Log("Changed Sprite: Charms." + i);
             }
 
             CharmIconList.Instance.unbreakableStrength = Sprites["Charms.ustr"];
-            Log("Changed Sprite: Charms.ustr");
 
             GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("25")
                 .LocateMyFSM("charm_show_if_collected").GetAction<SetSpriteRendererSprite>("Glass Attack", 2).sprite
                 .Value = Sprites["Charms.brokestr"];
 
-            Log("Changed Sprite: Charms.brokestr");
-
             HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
                 .mainTexture = Sprites["Lances"].texture;
-            Log("Changed Sprite: Lances");
 
             InvNailSprite invNailSprite = GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("Nail")
                 .GetComponent<InvNailSprite>();
@@ -382,7 +380,6 @@ namespace Lightbringer
             invNailSprite.level3 = Sprites["LanceInv"];
             invNailSprite.level4 = Sprites["LanceInv"];
             invNailSprite.level5 = Sprites["LanceInv"];
-            Log("Changed Sprite: invNailSprite");
 
             Log("Changed Sprites!");
         }
@@ -829,6 +826,8 @@ namespace Lightbringer
             // Charm Costs
             SaveGameSave();
 
+            GameManager.instance.StartCoroutine(ChangeSprites());
+
             // Tiny Shell charm
             if (PlayerData.instance.equippedCharm_4)
             {
@@ -918,8 +917,13 @@ namespace Lightbringer
             yield return null;
             yield return null;
 
-            // ReSharper disable once PossibleNullReferenceException
-            GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN").Name = "no";
+            FsmEvent a = GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN");
+            if (a != null)
+            {
+                a.Name = "no";
+            }
+            
+            GameManager.instance.StartCoroutine(ChangeSprites());
 
             // Text Display code
             if (_canvas == null)
