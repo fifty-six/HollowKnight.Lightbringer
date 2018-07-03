@@ -9,6 +9,8 @@ using HutongGames.PlayMaker;
 using ModCommon;
 using Modding;
 using HutongGames.PlayMaker.Actions;
+using JetBrains.Annotations;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -215,11 +217,49 @@ namespace Lightbringer
             GrubberFlyBeam.transform.SetScaleY(scaleY);
         }
 
+        public override string GetVersion() => "shitpost";
+
+        private void CreateCanvas()
+        {
+            if (_canvas != null) return;
+            CanvasUtil.CreateFonts();
+            _canvas = CanvasUtil.CreateCanvas(RenderMode.ScreenSpaceOverlay, new Vector2(1920, 1080));
+            Object.DontDestroyOnLoad(_canvas);
+            GameObject gameObject =
+                CanvasUtil.CreateTextPanel(_canvas, "", 27, TextAnchor.MiddleCenter,
+                    new CanvasUtil.RectData(
+                        new Vector2(0, 50),
+                        new Vector2(0, 45),
+                        new Vector2(0, 0),
+                        new Vector2(1, 0),
+                        new Vector2(0.5f, 0.5f)));
+            _textObj = gameObject.GetComponent<Text>();
+            _textObj.font = CanvasUtil.TrajanBold;
+            _textObj.text = "";
+            _textObj.fontSize = 42;
+        }
+        
+
         public override void Initialize()
         {
             Instance = this;
 
-            // Sprites!
+            try
+            {
+                RegisterCallbacks();
+            }
+            catch
+            {
+                CreateCanvas();
+                _textObj.text = "Lightbringer requires ModCommon to function! Install it!";
+                _textObj.CrossFadeAlpha(1f, 0f, false);
+            }
+        }
+
+        private void RegisterCallbacks() 
+        {
+
+        // Sprites!
             On.ShopItemStats.Awake += Awake;
 
             // Lance Spawn
@@ -911,11 +951,17 @@ namespace Lightbringer
             if (GameManager.instance == null) return;
             GameManager.instance.StartCoroutine(SceneLoaded(arg0));
         }
-
+        
         private IEnumerator<YieldInstruction> SceneLoaded(Scene arg0)
         {
             yield return null;
             yield return null;
+            
+            if (arg0.name == "Knight_Pickup")
+            {
+                PlayerData.instance.maxHealth = PlayerData.instance.health = 4;
+                PlayerData.instance.charmSlots -= 1;
+            }
 
             FsmEvent a = GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN");
             if (a != null)
@@ -925,25 +971,7 @@ namespace Lightbringer
             
             GameManager.instance.StartCoroutine(ChangeSprites());
 
-            // Text Display code
-            if (_canvas == null)
-            {
-                CanvasUtil.CreateFonts();
-                _canvas = CanvasUtil.CreateCanvas(RenderMode.ScreenSpaceOverlay, new Vector2(1920, 1080));
-                Object.DontDestroyOnLoad(_canvas);
-                GameObject gameObject =
-                    CanvasUtil.CreateTextPanel(_canvas, "", 27, TextAnchor.MiddleCenter,
-                        new CanvasUtil.RectData(
-                            new Vector2(0, 50),
-                            new Vector2(0, 45),
-                            new Vector2(0, 0),
-                            new Vector2(1, 0),
-                            new Vector2(0.5f, 0.5f)));
-                _textObj = gameObject.GetComponent<Text>();
-                _textObj.font = CanvasUtil.TrajanBold;
-                _textObj.text = "";
-                _textObj.fontSize = 42;
-            }
+            CreateCanvas();
 
             // Empress Muzznik
             PlayerData.instance.CountGameCompletion();
