@@ -1062,7 +1062,7 @@ namespace Lightbringer
             }
 
             // Double Kin
-            if (_kin == null && PlayerData.instance.geo == 753)
+            if (_kin == null && (PlayerData.instance.geo == 753 || PlayerData.instance.geo == 56))
             {
                 _kin = GameObject.Find("Lost Kin");
                 if (_kin != null)
@@ -1097,7 +1097,7 @@ namespace Lightbringer
                     }
                 }
 
-                // Easter Egg
+                // Easter Eg.11g
                 if (PlayerData.instance.geo == 753)
                 {
                     HeroController.instance.AddMPChargeSpa(3);
@@ -1120,6 +1120,11 @@ namespace Lightbringer
                             SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
                             break;
                     }
+                } 
+                else if (PlayerData.instance.geo == 56)
+                {
+                    HeroController.instance.AddMPChargeSpa(3);
+                    SpriteFlash.flash(Color.black, 1.11f, 0f, 1.11f, 0f);
                 }
                 else if (PlayerData.instance.equippedCharm_6)
                 {
