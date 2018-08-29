@@ -4,7 +4,7 @@
 Hollow Knight: Lightbringer API                               by 753 and 56
 ///////////////////////////////////////////////////////////////////////////
 
-- Feature List -
+// Feature List //
 
 + Changes your character from melee to ranged
 + SOUL regenerates passively instead of from hitting enemies
@@ -16,20 +16,13 @@ Hollow Knight: Lightbringer API                               by 753 and 56
 
 ///////////////////////////////////////////////////////////////////////////
 
-- Installation Instructions -
+// Installation Instructions //
 
-To install the mod, take the folder labeled hollow_knight_Data and drag it into the Hollow Knight folder located here:
-
-Steam\steamapps\common\Hollow Knight\
-
-Merge the folders when prompted to and select Copy and Replace for every file.
-
-REQUIRES MODCOMMON
-
-You can also use one of the installers pinned in #modding (RECOMMENDED)
+To install the mod, use the ModInstaller found here:
+https://radiance.host/mods/ModInstaller.exe
 
 ///////////////////////////////////////////////////////////////////////////
 
-- Troubleshooting -
+// Troubleshooting //
 
-If any problems occur, feel free to contact 753 or 56 through Discord [753#2266 or 56#1363].
+If any problems occur, feel free to contact 753 or 56 through Discord [753#0753 or 56#1363].
