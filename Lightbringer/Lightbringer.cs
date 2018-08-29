@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -24,12 +24,10 @@ namespace Lightbringer
     {
         private readonly Dictionary<string, string> _langDict = new Dictionary<string, string>
         {
-            ["SHOP_DESC_GEOGATHERER"] =
-                "Do you find yourself leaving a lot of Geo behind as you hurry through the caverns?\n\nThis charm will make sure that any loose change finds its way back to you!",
             ["CHARM_DESC_13"] =
                 "Trophy given to those proven to be worthy. A requirement for any who wish to master the nail.\n\nGreatly increases the range of the bearer's nail and causes it to deal more damage based on what they have accomplished.",
             ["CHARM_DESC_14"] =
-                "What is this? Why does it exist? Is it safe to use?\n\nSlashing upwards speeds up the flow of time. Injury of self will break the effect.",
+                "What is this? Why does it exist? Is it safe to use?\n\nSlashing upwards speeds up the flow of time. Taking damage will break the effect.",
             ["CHARM_DESC_15"] =
                 "A small trinket made of valuable metal and precious stone.\n\nLanding five successful nail attacks on an enemy will restore health.",
             ["CHARM_DESC_17"] =
@@ -447,7 +445,7 @@ namespace Lightbringer
             PlayerData.instance.charmCost_35 = 3;
             PlayerData.instance.charmCost_18 = 2;
             PlayerData.instance.charmCost_3 = 1;
-            PlayerData.instance.nailDamage = PlayerData.instance.nailSmithUpgrades * 4 + 5;
+            PlayerData.instance.nailDamage = PlayerData.instance.nailSmithUpgrades * 4 + 5; // protect the player from hurting their save data
         }
 
         private const float ORIG_RUN_SPEED = 8.3f;
@@ -681,7 +679,7 @@ namespace Lightbringer
                         }
                         else
                         {
-                            //Grubberfly's Elegy
+                            // Grubberfly's Elegy
                             if (HeroController.instance.playerData.equippedCharm_35)
                             {
                                 // Longnail AND Soul Catcher
@@ -811,14 +809,14 @@ namespace Lightbringer
                     #region Upwards Attack
 
                     case AttackDirection.upward:
-                        // Timescale Charm #14
+                        // Timescale Charm #14 - TIME FRACTURE //
                         if (HeroController.instance.playerData.equippedCharm_14 && _timefracture < 2f)
                         {
                             _timefracture += 0.1f;
                             SpriteFlash.flash(Color.white, 0.85f, 0.35f, 0f, 0.35f);
                         }
 
-                        // UP ATTACK CHARM 8 - RISING LIGHT//
+                        // Upward Attack Charm #8 - RISING LIGHT //
                         if (HeroController.instance.playerData.equippedCharm_8)
                         {
                             HeroController.instance.playerData.nailDamage =
@@ -891,6 +889,7 @@ namespace Lightbringer
             Time.timeScale = 1f; // reset time to normal
             _timefracture = 1f; // reset time to normal
 
+            /*  NO LONGER NECESSARY WITH GODMASTER UPDATE
             // Respawn all ghosts and pin them!
             pd.galienPinned = true;
             pd.galienDefeated = 0;
@@ -911,6 +910,7 @@ namespace Lightbringer
             pd.falseKnightDreamDefeated = false;
             pd.infectedKnightDreamDefeated = false;
             pd.mageLordDreamDefeated = false;
+            */
 
             // BURNING PRIDE CALCULATIONS
             pd.nailDamage = 1 + pd.nailSmithUpgrades * 2;
@@ -959,8 +959,8 @@ namespace Lightbringer
             
             if (arg0.name == "Knight_Pickup")
             {
-                PlayerData.instance.maxHealth = PlayerData.instance.health = 4;
-                PlayerData.instance.charmSlots -= 1;
+                PlayerData.instance.maxHealthBase = PlayerData.instance.maxHealth = PlayerData.instance.health = 4;
+                PlayerData.instance.charmSlots += 1;
             }
 
             FsmEvent a = GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN");
