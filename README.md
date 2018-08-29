@@ -1,7 +1,8 @@
 # HollowKnight.Lightbringer
 
 
-Hollow Knight: Lightbringer API                               by 753 and 56
+Hollow Knight: Lightbringer
+Created by 753, Ported by 56
 
 ///////////////////////////////////////////////////////////////////////////
 
