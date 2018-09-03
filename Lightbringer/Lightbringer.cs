@@ -6,20 +6,24 @@ using System.Linq;
 using System.Reflection;
 using GlobalEnums;
 using HutongGames.PlayMaker;
-using ModCommon;
-using Modding;
-using HutongGames.PlayMaker.Actions;
 using JetBrains.Annotations;
-using TMPro;
+using ModCommon;
+using ModCommon.Util;
+using Modding;
+using On.HutongGames.PlayMaker.Actions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 using Random = System.Random;
+using SetSpriteRendererSprite = HutongGames.PlayMaker.Actions.SetSpriteRendererSprite;
+using USceneManager = UnityEngine.SceneManagement.SceneManager;
+
+// ReSharper disable CompareOfFloatsByEqualityOperator
 
 namespace Lightbringer
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
+    [UsedImplicitly]
     public class Lightbringer : Mod, ITogglableMod
     {
         private readonly Dictionary<string, string> _langDict = new Dictionary<string, string>
@@ -134,40 +138,13 @@ namespace Lightbringer
 
         private float _timefracture;
 
-        private GameObject GrubberFlyBeam
+        private static GameObject GrubberFlyBeam
         {
-            get => GetAttr<GameObject>(HeroController.instance, "grubberFlyBeam");
-            set => SetAttr(HeroController.instance, "grubberFlyBeam", value);
+            get => HeroController.instance.GetAttr<GameObject>("grubberFlyBeam");
+            set => HeroController.instance.SetAttr("grubberFlyBeam", value);
         }
 
-        internal SpriteFlash SpriteFlash => GetAttr<SpriteFlash>(HeroController.instance, "spriteFlash");
-
-        private static readonly Dictionary<Type, Dictionary<string, FieldInfo>> Fields =
-            new Dictionary<Type, Dictionary<string, FieldInfo>>();
-
-        private T GetAttr<T>(object obj, string name, bool instance = true)
-        {
-            if (obj == null || string.IsNullOrEmpty(name)) return default(T);
-
-            Type t = obj.GetType();
-
-            if (!Fields.ContainsKey(t))
-            {
-                Fields.Add(t, new Dictionary<string, FieldInfo>());
-            }
-
-            Dictionary<string, FieldInfo> typeFields = Fields[t];
-
-            if (!typeFields.ContainsKey(name))
-            {
-                typeFields.Add(name,
-                    t.GetField(name,
-                        BindingFlags.NonPublic | BindingFlags.Public |
-                        (instance ? BindingFlags.Instance : BindingFlags.Static)));
-            }
-
-            return (T) typeFields[name]?.GetValue(obj);
-        }
+        internal SpriteFlash SpriteFlash { get; } = HeroController.instance.GetAttr<SpriteFlash>("spriteFlash");
 
         internal Dictionary<string, Sprite> Sprites;
 
@@ -178,6 +155,15 @@ namespace Lightbringer
             Down,
             Right,
             Left
+        }
+
+        private void SpawnBeam(BeamDirection[] dirs, float scaleX, float scaleY, bool critical = false,
+            float? positionX = null, float? positionY = null, bool offset = false, bool rightNegative = true)
+        {
+            foreach (BeamDirection dir in dirs)
+            {
+                SpawnBeam(dir, scaleX, scaleY, critical, positionX, positionY, offset, rightNegative);
+            }
         }
 
         private void SpawnBeam(BeamDirection dir, float scaleX, float scaleY, bool critical = false,
@@ -204,7 +190,7 @@ namespace Lightbringer
 
             beamPrefab += critical ? "_fury" : "";
 
-            GrubberFlyBeam = GetAttr<GameObject>(HeroController.instance, beamPrefab)
+            GrubberFlyBeam = HeroController.instance.GetAttr<GameObject>(beamPrefab)
                 .Spawn(HeroController.instance.transform.position);
             Transform t = HeroController.instance.transform;
             if (positionX != null)
@@ -236,39 +222,28 @@ namespace Lightbringer
             _textObj.text = "";
             _textObj.fontSize = 42;
         }
-        
+
         // Tiny Shell fixes
-        private void FaceLeft(On.HeroController.orig_FaceLeft orig, HeroController self)
+        private static void FaceLeft(On.HeroController.orig_FaceLeft orig, HeroController self)
         {
-           self.cState.facingRight = false;
+            self.cState.facingRight = false;
             Vector3 localScale = self.transform.localScale;
-            if (self.playerData.equippedCharm_4) // Tiny Shell charm #4
-            {
-                localScale.x = 0.75f;
-            }
-            else
-            {
-                localScale.x = 1f;
-            }
+            localScale.x = self.playerData.equippedCharm_4 ? 0.75f : 1f;
+
             self.transform.localScale = localScale;
         }
-        private void FaceRight(On.HeroController.orig_FaceRight orig, HeroController self)
+
+        private static void FaceRight(On.HeroController.orig_FaceRight orig, HeroController self)
         {
             self.cState.facingRight = true;
             Vector3 localScale = self.transform.localScale;
-            if (self.playerData.equippedCharm_4) // Tiny Shell charm #4
-            {
-                localScale.x = -0.75f;
-            }
-            else
-            {
-                localScale.x = -1f;
-            }
+            localScale.x = self.playerData.equippedCharm_4 ? -0.75f : -1f;
+
             self.transform.localScale = localScale;
         }
 
         // It should take more hits to stun bosses.
-        private void DoIntCompare(On.HutongGames.PlayMaker.Actions.IntCompare.orig_DoIntCompare orig, HutongGames.PlayMaker.Actions.IntCompare self)
+        private static void DoIntCompare(IntCompare.orig_DoIntCompare orig, HutongGames.PlayMaker.Actions.IntCompare self)
         {
             if (self.integer2.Name.StartsWith("Stun"))
             {
@@ -281,7 +256,7 @@ namespace Lightbringer
                 orig(self);
             }
         }
-        
+
         public override void Initialize()
         {
             Instance = this;
@@ -298,15 +273,15 @@ namespace Lightbringer
             }
         }
 
-        private void RegisterCallbacks() 
+        private void RegisterCallbacks()
         {
             // Tiny Shell fixes
             On.HeroController.FaceLeft += FaceLeft;
             On.HeroController.FaceRight += FaceRight;
-            
+
             // Stun Resistance
-            On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare += DoIntCompare;
-            
+            IntCompare.DoIntCompare += DoIntCompare;
+
             // Sprites!
             On.ShopItemStats.Awake += Awake;
 
@@ -325,6 +300,9 @@ namespace Lightbringer
             ModHooks.Instance.BeforeSavegameSaveHook += BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook += AfterSaveGameLoad;
             ModHooks.Instance.SavegameSaveHook += SaveGameSave;
+            
+            // Notches/HP
+            ModHooks.Instance.NewGameHook += OnNewGame;
 
             // Panic Compass
             ModHooks.Instance.BeforeAddHealthHook += Health;
@@ -362,7 +340,7 @@ namespace Lightbringer
             // Lance Textures
             // Canvas for Muzznik Text
             // Soul Orb FSM
-            UnityEngine.SceneManagement.SceneManager.sceneLoaded += SceneLoadedHook;
+            USceneManager.sceneLoaded += SceneLoadedHook;
 
             Assembly asm = Assembly.GetExecutingAssembly();
 
@@ -396,11 +374,17 @@ namespace Lightbringer
             }
         }
 
+        private void OnNewGame()
+        {
+            PlayerData.instance.maxHealthBase = PlayerData.instance.maxHealth = PlayerData.instance.health = 4;
+            PlayerData.instance.charmSlots += 1;
+        }
+
         public void Unload()
         {
             On.HeroController.FaceLeft -= FaceLeft;
             On.HeroController.FaceRight -= FaceRight;
-            On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare -= DoIntCompare;
+            IntCompare.DoIntCompare -= DoIntCompare;
             On.ShopItemStats.Awake -= Awake;
             On.HeroController.Attack -= Attack;
             On.PlayerData.AddGeo -= AddGeo;
@@ -408,6 +392,7 @@ namespace Lightbringer
             ModHooks.Instance.BeforeSavegameSaveHook -= BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook -= AfterSaveGameLoad;
             ModHooks.Instance.SavegameSaveHook -= SaveGameSave;
+            ModHooks.Instance.NewGameHook -= OnNewGame;
             ModHooks.Instance.TakeHealthHook -= Health;
             ModHooks.Instance.DoAttackHook -= DoAttack;
             ModHooks.Instance.AfterAttackHook -= AfterAttack;
@@ -417,7 +402,7 @@ namespace Lightbringer
             ModHooks.Instance.CharmUpdateHook -= CharmUpdate;
             ModHooks.Instance.LanguageGetHook -= LangGet;
             ModHooks.Instance.BlueHealthHook -= BlueHealth;
-            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= SceneLoadedHook;
+            USceneManager.sceneLoaded -= SceneLoadedHook;
 
             if (PlayerData.instance != null)
                 BeforeSaveGameSave();
@@ -427,13 +412,13 @@ namespace Lightbringer
         private void Awake(On.ShopItemStats.orig_Awake orig, ShopItemStats self)
         {
             orig(self);
-            
+
             string pdbool = self.playerDataBoolName;
             if (!pdbool.StartsWith("gotCharm_")) return;
-            
+
             string key = "Charms." + pdbool.Substring(9, pdbool.Length - 9);
             if (Sprites.ContainsKey(key))
-                GetAttr<GameObject>(self, "itemSprite").GetComponent<SpriteRenderer>().sprite = Sprites[key];
+                self.GetAttr<GameObject>("itemSprite").GetComponent<SpriteRenderer>().sprite = Sprites[key];
         }
 
         private void AfterSaveGameLoad(SaveGameData data)
@@ -444,7 +429,10 @@ namespace Lightbringer
 
         private IEnumerator ChangeSprites()
         {
-            while (CharmIconList.Instance == null || GameManager.instance == null || HeroController.instance == null || Sprites.Count < 20)
+            while (CharmIconList.Instance == null  ||
+                   GameManager.instance == null    ||
+                   HeroController.instance == null ||
+                   Sprites.Count < 20)
             {
                 yield return null;
             }
@@ -475,7 +463,7 @@ namespace Lightbringer
         }
 
 
-        private void SaveGameSave(int id = 0)
+        private static void SaveGameSave(int id = 0)
         {
             PlayerData.instance.charmCost_21 = 1; // Faulty Wallet update patch
             PlayerData.instance.charmCost_19 = 4; // Eye of the Storm update patch
@@ -488,8 +476,9 @@ namespace Lightbringer
             PlayerData.instance.charmCost_38 = 2; // Dreamshield update patch
         }
 
-        private void BeforeSaveGameSave(SaveGameData data = null)
+        private static void BeforeSaveGameSave(SaveGameData data = null)
         {
+            // Don't ruin saves
             PlayerData.instance.charmCost_21 = 4;
             PlayerData.instance.charmCost_19 = 3;
             PlayerData.instance.charmCost_15 = 2;
@@ -498,14 +487,15 @@ namespace Lightbringer
             PlayerData.instance.charmCost_35 = 3;
             PlayerData.instance.charmCost_18 = 2;
             PlayerData.instance.charmCost_3 = 1;
-            PlayerData.instance.nailDamage = PlayerData.instance.nailSmithUpgrades * 4 + 5; // protect the player from hurting their save data
+            PlayerData.instance.charmCost_38 = 3; // Dreamshield update patch
+            PlayerData.instance.nailDamage = PlayerData.instance.nailSmithUpgrades * 4 + 5; 
         }
 
         private const float ORIG_RUN_SPEED = 8.3f;
         private const float ORIG_RUN_SPEED_CH = 12f;
         private const float ORIG_RUN_SPEED_CH_COMBO = 13.5f;
 
-        private int Health(int amount)
+        private static int Health(int amount)
         {
             float panicSpeed = 1f;
             if (HeroController.instance.playerData.equippedCharm_2)
@@ -533,7 +523,7 @@ namespace Lightbringer
         {
             if (_origNailTerrainCheckTime == 0)
             {
-                _origNailTerrainCheckTime = GetAttr<float>(HeroController.instance, "NAIL_TERRAIN_CHECK_TIME");
+                _origNailTerrainCheckTime = HeroController.instance.GetAttr<float>("NAIL_TERRAIN_CHECK_TIME");
             }
 
             if (!(HeroController.instance.vertical_input < Mathf.Epsilon) &&
@@ -541,16 +531,16 @@ namespace Lightbringer
                   HeroController.instance.hero_state != ActorStates.idle &&
                   HeroController.instance.hero_state != ActorStates.running))
             {
-                SetAttr(HeroController.instance, "NAIL_TERRAIN_CHECK_TIME", 0f);
+                HeroController.instance.SetAttr("NAIL_TERRAIN_CHECK_TIME", 0f);
             }
         }
 
         private void AfterAttack(AttackDirection dir)
         {
-            SetAttr(HeroController.instance, "NAIL_TERRAIN_CHECK_TIME", _origNailTerrainCheckTime);
+            HeroController.instance.SetAttr("NAIL_TERRAIN_CHECK_TIME", _origNailTerrainCheckTime);
         }
 
-        private int BlueHealth()
+        private static int BlueHealth()
         {
             // Make Rising Light not give 2 blue health.
             return PlayerData.instance.equippedCharm_8 ? -2 : 0;
@@ -561,37 +551,12 @@ namespace Lightbringer
             return _langDict.TryGetValue(key, out string val) ? val : Language.Language.GetInternal(key, sheetTitle);
         }
 
-        private void SetAttr<T>(object obj, string name, T val, bool instance = true)
-        {
-            if (obj == null || string.IsNullOrEmpty(name)) return;
-
-            Type t = obj.GetType();
-
-            if (!Fields.ContainsKey(t))
-            {
-                Fields.Add(t, new Dictionary<string, FieldInfo>());
-            }
-
-            Dictionary<string, FieldInfo> typeFields = Fields[t];
-
-            if (!typeFields.ContainsKey(name))
-            {
-                typeFields.Add(name,
-                    t.GetField(name,
-                        BindingFlags.NonPublic | BindingFlags.Public |
-                        (instance ? BindingFlags.Instance : BindingFlags.Static)));
-            }
-
-            typeFields[name]?.SetValue(obj, val);
-        }
-
-
-        private void AddGeo(On.PlayerData.orig_AddGeo orig, PlayerData self, int amount)
+        private static void AddGeo(On.PlayerData.orig_AddGeo orig, PlayerData self, int amount)
         {
             // Don't let Faulty Wallet hurt people with full SOUL
-            if (PlayerData.instance.equippedCharm_21 && (PlayerData.instance.MPCharge < PlayerData.instance.maxMP ||
-                                                         PlayerData.instance.MPReserve !=
-                                                         PlayerData.instance.MPReserveMax))
+            if (PlayerData.instance.equippedCharm_21 &&
+                (PlayerData.instance.MPCharge < PlayerData.instance.maxMP ||
+                 PlayerData.instance.MPReserve != PlayerData.instance.MPReserveMax))
             {
                 int lostGeo = (PlayerData.instance.maxMP - 1 - PlayerData.instance.MPCharge) / 3 +
                               (PlayerData.instance.MPReserveMax - PlayerData.instance.MPReserve) / 3 + 1;
@@ -654,7 +619,7 @@ namespace Lightbringer
                 {
                     HeroController.instance.playerData.beamDamage *= 3;
                     HeroController.instance.shadowRingPrefab.Spawn(HeroController.instance.transform.position);
-                    GetAttr<AudioSource>(HeroController.instance, "audioSource")
+                    HeroController.instance.GetAttr<AudioSource>("audioSource")
                         .PlayOneShot(HeroController.instance.nailArtChargeComplete, 1f);
                 }
             }
@@ -663,13 +628,13 @@ namespace Lightbringer
             // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             // QUICK SLASH CHARM #REEE32
-            SetAttr(HeroController.instance, "attackDuration", HeroController.instance.playerData.equippedCharm_32
+            HeroController.instance.SetAttr("attackDuration", HeroController.instance.playerData.equippedCharm_32
                 ? HeroController.instance.ATTACK_DURATION_CH
                 : HeroController.instance.ATTACK_DURATION);
 
             // Fragile Nightmare damage calculations
             if (HeroController.instance.playerData.equippedCharm_25 &&
-            HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
+                HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
             {
                 HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.MPCharge / 20;
                 HeroController.instance.TakeMP(7);
@@ -682,13 +647,14 @@ namespace Lightbringer
                 PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
                 HeroController.instance.playerData.beamDamage = lanceDamage;
 
-                SetAttr(HeroController.instance, "wallSlashing", true);
+                HeroController.instance.SetAttr("wallSlashing", true);
                 bool x = HeroController.instance.cState.facingRight;
                 SpawnBeam(x ? BeamDirection.Left : BeamDirection.Right, 1f, 1f, critical);
             }
             else
             {
-                SetAttr(HeroController.instance, "wallSlashing", false);
+                HeroController.instance.SetAttr("wallSlashing", false);
+                // ReSharper disable once SwitchStatementMissingSomeCases
                 switch (attackDir)
                 {
                     #region Normal Attack
@@ -699,13 +665,13 @@ namespace Lightbringer
                         PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
                         HeroController.instance.playerData.beamDamage = lanceDamage;
 
-                        SetAttr(HeroController.instance, "slashComponent", HeroController.instance.normalSlash);
-                        SetAttr(HeroController.instance, "slashFsm", HeroController.instance.normalSlashFsm);
-                        GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables
+                        HeroController.instance.SetAttr("slashComponent", HeroController.instance.normalSlash);
+                        HeroController.instance.SetAttr("slashFsm", HeroController.instance.normalSlashFsm);
+                        HeroController.instance.GetAttr<PlayMakerFSM>("slashFsm").FsmVariables
                             .GetFsmFloat("direction").Value = HeroController.instance.cState.facingRight
                             ? 0f
                             : 180f;
-                        GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
+                        HeroController.instance.GetAttr<NailSlash>("slashComponent").StartSlash();
 
                         if (HeroController.instance.playerData.equippedCharm_19)
                         {
@@ -716,20 +682,15 @@ namespace Lightbringer
                                     HeroController.instance.TakeMP(10);
                                 }
 
-                                if (HeroController.instance.playerData.equippedCharm_4)
-                                {
-                                    HeroController.instance.spell1Prefab.Spawn(
-                                        HeroController.instance.transform.position + new Vector3(0f, .6f, 0f));
-                                }
-                                else
-                                {
-                                    HeroController.instance.spell1Prefab.Spawn(
-                                        HeroController.instance.transform.position + new Vector3(0f, .3f, 0f));
-                                }
+                                HeroController.instance.spell1Prefab.Spawn(
+                                    HeroController.instance.transform.position +
+                                    (HeroController.instance.playerData.equippedCharm_4
+                                        ? new Vector3(0f, .6f, 0f)
+                                        : new Vector3(0f, .3f, 0f)));
                             }
                             else
                             {
-                                GetAttr<AudioSource>(HeroController.instance, "audioSource")
+                                HeroController.instance.GetAttr<AudioSource>("audioSource")
                                     .PlayOneShot(HeroController.instance.blockerImpact, 1f);
                             }
                         }
@@ -738,25 +699,12 @@ namespace Lightbringer
                             // Grubberfly's Elegy
                             if (HeroController.instance.playerData.equippedCharm_35)
                             {
-                                // Longnail AND Soul Catcher
-                                if (HeroController.instance.playerData.equippedCharm_20 &&
-                                    HeroController.instance.playerData.equippedCharm_18)
+                                // Longnail AND/OR Soul Catcher
+                                if (HeroController.instance.playerData.equippedCharm_20)
                                 {
-                                    foreach (BeamDirection x in new BeamDirection[]
-                                        {BeamDirection.Left, BeamDirection.Right})
-                                    {
-                                        SpawnBeam(x, 1.5f, 1.5f, critical,
-                                            positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0, offset: true);
-
-                                        SpawnBeam(x, 1.5f, 1.5f, critical,
-                                            positionY: PlayerData.instance.equippedCharm_4 ? .9f : .7f, offset: true);
-                                    }
-                                }
-                                // Soul Catcher
-                                else if (HeroController.instance.playerData.equippedCharm_20)
-                                {
-                                    // attack rightwards with charm 20
-                                    if (HeroController.instance.cState.facingRight)
+                                    bool longnail = PlayerData.instance.equippedCharm_18;
+                                    
+                                    if (HeroController.instance.cState.facingRight || longnail)
                                     {
                                         SpawnBeam(BeamDirection.Right, 1.5f, 1.5f, critical,
                                             positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0f, offset: true);
@@ -764,7 +712,7 @@ namespace Lightbringer
                                             positionY: PlayerData.instance.equippedCharm_4 ? .7f : .9f, offset: true);
                                         HeroController.instance.RecoilLeftLong();
                                     }
-                                    else // attack leftwards with charm 20
+                                    if (!HeroController.instance.cState.facingRight || longnail)
                                     {
                                         SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical,
                                             positionY: PlayerData.instance.equippedCharm_4 ? .2f : 0f, offset: true);
@@ -773,8 +721,8 @@ namespace Lightbringer
                                         HeroController.instance.RecoilRightLong();
                                     }
                                 }
-                                else if (HeroController.instance.playerData.equippedCharm_18
-                                ) // ///////////////////////// Longnail aka Silent Divide
+                                // Longnail
+                                else if (HeroController.instance.playerData.equippedCharm_18) 
                                 {
                                     SpawnBeam(BeamDirection.Left, 1.5f, 1.5f, critical,
                                         positionY: PlayerData.instance.equippedCharm_4 ? .2f : .1f, offset: true);
@@ -877,9 +825,10 @@ namespace Lightbringer
                         {
                             // Fragile Nightmare damage calculations
                             if (HeroController.instance.playerData.equippedCharm_25 &&
-                            HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
+                                HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
                             {
-                                HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.MPCharge / 20;
+                                HeroController.instance.playerData.beamDamage +=
+                                    HeroController.instance.playerData.MPCharge / 20;
                                 HeroController.instance.TakeMP(7);
                             }
 
@@ -895,24 +844,24 @@ namespace Lightbringer
                             }
                         }
 
-                        SetAttr(HeroController.instance, "slashComponent", HeroController.instance.upSlash);
-                        SetAttr(HeroController.instance, "slashFsm", HeroController.instance.upSlashFsm);
+                        HeroController.instance.SetAttr("slashComponent", HeroController.instance.upSlash);
+                        HeroController.instance.SetAttr("slashFsm", HeroController.instance.upSlashFsm);
                         HeroController.instance.cState.upAttacking = true;
-                        GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables
+                        HeroController.instance.GetAttr<PlayMakerFSM>("slashFsm").FsmVariables
                             .GetFsmFloat("direction").Value = 90f;
-                        GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
+                        HeroController.instance.GetAttr<NailSlash>("slashComponent").StartSlash();
                         break;
                     // attack downwards
 
                     #endregion
 
                     case AttackDirection.downward:
-                        SetAttr(HeroController.instance, "slashComponent", HeroController.instance.downSlash);
-                        SetAttr(HeroController.instance, "slashFsm", HeroController.instance.downSlashFsm);
+                        HeroController.instance.SetAttr("slashComponent", HeroController.instance.downSlash);
+                        HeroController.instance.SetAttr("slashFsm", HeroController.instance.downSlashFsm);
                         HeroController.instance.cState.downAttacking = true;
-                        GetAttr<PlayMakerFSM>(HeroController.instance, "slashFsm").FsmVariables
+                        HeroController.instance.GetAttr<PlayMakerFSM>("slashFsm").FsmVariables
                             .GetFsmFloat("direction").Value = 270f;
-                        GetAttr<NailSlash>(HeroController.instance, "slashComponent").StartSlash();
+                        HeroController.instance.GetAttr<NailSlash>("slashComponent").StartSlash();
                         break;
                 }
             }
@@ -950,31 +899,11 @@ namespace Lightbringer
             }
 
             pd.isInvincible = false;
-            Time.timeScale = 1f; // reset time to normal
-            _timefracture = 1f; // reset time to normal
+            
+            // Reset time to normal
+            Time.timeScale = 1f;
+            _timefracture = 1f;
 
-            /*  NO LONGER NECESSARY WITH GODMASTER UPDATE
-            // Respawn all ghosts and pin them!
-            pd.galienPinned = true;
-            pd.galienDefeated = 0;
-            pd.markothPinned = true;
-            pd.markothDefeated = 0;
-            pd.noEyesPinned = true;
-            pd.noEyesDefeated = 0;
-            pd.mumCaterpillarPinned = true;
-            pd.mumCaterpillarDefeated = 0;
-            pd.huPinned = true;
-            pd.elderHuDefeated = 0;
-            pd.xeroPinned = true;
-            pd.xeroDefeated = 0;
-            pd.aladarPinned = true;
-            pd.aladarSlugDefeated = 0;
-
-            // resets dream boss fights
-            pd.falseKnightDreamDefeated = false;
-            pd.infectedKnightDreamDefeated = false;
-            pd.mageLordDreamDefeated = false;
-            */
 
             // BURNING PRIDE CALCULATIONS
             pd.nailDamage = 1 + pd.nailSmithUpgrades * 2;
@@ -987,27 +916,8 @@ namespace Lightbringer
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
         }
 
-        private void Move(On.HeroController.orig_Move orig, HeroController self, float moveDirection)
-        {
-            float panicSpeed = 1f;
-            if (HeroController.instance.playerData.equippedCharm_2)
-            {
-                int missingHealth = HeroController.instance.playerData.maxHealth -
-                                    HeroController.instance.playerData.health;
-                panicSpeed += missingHealth * .03f;
-            }
-
-            orig(self, !HeroController.instance.cState.inWalkZone && HeroController.instance.inAcid
-                ? moveDirection * panicSpeed
-                : moveDirection
-            );
-        }
-
-
         private Text _textObj;
         private GameObject _canvas;
-
-        // Unused private types or members should be removed
 
         private void SceneLoadedHook(Scene arg0, LoadSceneMode lsm)
         {
@@ -1015,16 +925,14 @@ namespace Lightbringer
             if (GameManager.instance == null) return;
             GameManager.instance.StartCoroutine(SceneLoaded(arg0));
         }
-        
+
         private IEnumerator<YieldInstruction> SceneLoaded(Scene arg0)
         {
             yield return null;
             yield return null;
-            
+
             if (arg0.name == "Knight_Pickup")
             {
-                PlayerData.instance.maxHealthBase = PlayerData.instance.maxHealth = PlayerData.instance.health = 4;
-                PlayerData.instance.charmSlots += 1;
             }
 
             FsmEvent a = GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN");
@@ -1032,7 +940,7 @@ namespace Lightbringer
             {
                 a.Name = "no";
             }
-            
+
             GameManager.instance.StartCoroutine(ChangeSprites());
 
             CreateCanvas();
@@ -1040,6 +948,7 @@ namespace Lightbringer
             // Empress Muzznik
             PlayerData.instance.CountGameCompletion();
             if (arg0.name != "Crossroads_04" || PlayerData.instance.killedBigFly) yield break;
+            
             if (PlayerData.instance.completionPercentage > 80)
             {
                 _textObj.text = "You are ready. Empress Muzznik awaits you.";
@@ -1071,12 +980,12 @@ namespace Lightbringer
             return 0;
         }
 
-        private void StartSlash(On.NailSlash.orig_StartSlash orig, NailSlash self)
+        private static void StartSlash(On.NailSlash.orig_StartSlash orig, NailSlash self)
         {
             orig(self);
-            PlayMakerFSM slashFsm = GetAttr<PlayMakerFSM>(self, "slashFsm");
+            PlayMakerFSM slashFsm = self.GetAttr<PlayMakerFSM>("slashFsm");
             float slashAngle = slashFsm.FsmVariables.FindFsmFloat("direction").Value;
-            tk2dSpriteAnimator anim = GetAttr<tk2dSpriteAnimator>(self, "anim");
+            tk2dSpriteAnimator anim = self.GetAttr<tk2dSpriteAnimator>("anim");
             if (slashAngle == 0f || slashAngle == 180f)
             {
                 self.transform.localScale = new Vector3(self.scale.x * 0.32f, self.scale.y * 0.32f, self.scale.z);
@@ -1085,7 +994,7 @@ namespace Lightbringer
                 return;
             }
 
-            if (GetAttr<bool>(self, "mantis")) // burning blade
+            if (self.GetAttr<bool>("mantis")) // burning blade
             {
                 self.transform.localScale = new Vector3(self.scale.x * 1.35f, self.scale.y * 1.35f, self.scale.z);
                 anim.Play(self.animName + " F");
@@ -1096,13 +1005,13 @@ namespace Lightbringer
                 anim.Play(self.animName);
             }
 
-            if (GetAttr<bool>(self, "fury"))
+            if (self.GetAttr<bool>("fury"))
             {
                 anim.Play(self.animName + " F");
             }
         }
 
-        private int TakeHealth(int amount)
+        private static int TakeHealth(int amount)
         {
             PlayerData.instance.ghostCoins = 1; // for timefracture
 
@@ -1138,15 +1047,11 @@ namespace Lightbringer
             // EMPRESS MUZZNIK BOSS FIGHT
             if (_gruz == null)
             {
-                    _gruz = GameObject.Find("Giant Fly");
-                    if (_gruz != null)
-                    {
-                        
-                        if(Application.loadedLevelName == "Crossroads_04")
-                        {
-                            _gruz.AddComponent<Muzznik>();
-                        }
-                    }
+                _gruz = GameObject.Find("Giant Fly");
+                if (_gruz != null && GameManager.instance.GetSceneNameString() == "Crossroads_04")
+                {
+                    _gruz.AddComponent<Muzznik>();
+                }
             }
 
             _manaRegenTime += Time.deltaTime * Time.timeScale;
@@ -1158,59 +1063,64 @@ namespace Lightbringer
                 foreach (int i in new int[] {17, 19, 34, 30, 28, 22, 25})
                 {
                     //if (PlayerData.instance.GetBool("equippedCharm_" + i) &&
-                    if (GetAttr<bool>(PlayerData.instance, "equippedCharm_" + i) &&
+                    if (PlayerData.instance.GetAttr<bool>("equippedCharm_" + i) &&
                         (i != 25 || !PlayerData.instance.brokenCharm_25))
                     {
                         HeroController.instance.AddMPChargeSpa(1);
                     }
                 }
 
-                // Easter Eg.11g
-                if (PlayerData.instance.geo == 753)
+                switch (PlayerData.instance.geo)
                 {
-                    HeroController.instance.AddMPChargeSpa(3);
-                    int num = new Random().Next(1, 6);
-                    switch (num)
-                    {
-                        case 1:
-                            SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        case 2:
-                            SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        case 3:
-                            SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        case 4:
-                            SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                        default:
-                            SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
-                            break;
-                    }
-                } 
-                else if (PlayerData.instance.geo == 56)
-                {
-                    HeroController.instance.AddMPChargeSpa(3);
-                    SpriteFlash.flash(Color.black, 1.11f, 0f, 1.11f, 0f);
-                }
-                else if (PlayerData.instance.equippedCharm_6)
-                {
-                    SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
+                    // Easter Eg.11g
+                    case 753:
+                        HeroController.instance.AddMPChargeSpa(3);
+                        int num = new Random().Next(1, 6);
+                        switch (num)
+                        {
+                            case 1:
+                                SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            case 2:
+                                SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            case 3:
+                                SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            case 4:
+                                SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                            default:
+                                SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
+                                break;
+                        }
+
+                        break;
+                    case 56:
+                        HeroController.instance.AddMPChargeSpa(3);
+                        SpriteFlash.flash(Color.black, 1.11f, 0f, 1.11f, 0f);
+                        break;
+                    default:
+                        if (PlayerData.instance.equippedCharm_6)
+                        {
+                            SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
+                        }
+
+                        break;
                 }
             }
 
             if (!HeroController.instance.playerData.equippedCharm_26) return;
+            
             _passionTime += Time.deltaTime * Time.timeScale;
-            if (!(_passionTime >= 2f)) return;
+            if (_passionTime < 2f) return;
+            
             _passionTime -= 2f;
             _passionDirection = !_passionDirection;
-            float num2 = new Random().Next(3, 12);
-            SpawnBeam(_passionDirection ? BeamDirection.Right : BeamDirection.Left, 1f, 1f,
-                positionX: _passionDirection ? -num2 : num2, positionY: -0.5f + num2 / 6f, offset: true);
-
-            // END MOD CODE
-            //orig(self);
+            
+            float num2 = (_passionDirection ? -1 : 1) * new Random().Next(3, 12);
+            SpawnBeam(_passionDirection ? BeamDirection.Right : BeamDirection.Left, 1f, 1f, positionX: num2,
+                positionY: -0.5f + num2 / 6f, offset: true);
         }
     }
 }

@@ -140,7 +140,7 @@ namespace Lightbringer
             {
                 if (t.Name != stateName) continue;
                 List<FsmTransition> transitions = t.Transitions.ToList();
-                transitions.Add(new FsmTransition()
+                transitions.Add(new FsmTransition
                 {
                     FsmEvent = new FsmEvent(eventName),
                     ToState = toState
