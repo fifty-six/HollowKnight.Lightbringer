@@ -125,7 +125,7 @@ namespace Lightbringer
 
         internal static Lightbringer Instance;
 
-        // mod vars
+        // Update Function Variables
         private float _manaRegenTime = Time.deltaTime;
 
         private bool _passionDirection = true;
@@ -215,7 +215,7 @@ namespace Lightbringer
             GrubberFlyBeam.transform.SetScaleY(scaleY);
         }
 
-        public override string GetVersion() => "shitpost";
+        public override string GetVersion() => "v1.02";
 
         private void CreateCanvas()
         {
@@ -237,7 +237,51 @@ namespace Lightbringer
             _textObj.fontSize = 42;
         }
         
+        // Tiny Shell fixes
+        private void FaceLeft(On.HeroController.orig_FaceLeft orig, HeroController self)
+        {
+           self.cState.facingRight = false;
+            Vector3 localScale = self.transform.localScale;
+            if (self.playerData.equippedCharm_4) // Tiny Shell charm #4
+            {
+                localScale.x = 0.75f;
+            }
+            else
+            {
+                localScale.x = 1f;
+            }
+            self.transform.localScale = localScale;
+        }
+        private void FaceRight(On.HeroController.orig_FaceRight orig, HeroController self)
+        {
+            self.cState.facingRight = true;
+            Vector3 localScale = self.transform.localScale;
+            if (self.playerData.equippedCharm_4) // Tiny Shell charm #4
+            {
+                localScale.x = -0.75f;
+            }
+            else
+            {
+                localScale.x = -1f;
+            }
+            self.transform.localScale = localScale;
+        }
 
+        // It should take more hits to stun bosses.
+        private void DoIntCompare(On.HutongGames.PlayMaker.Actions.IntCompare.orig_DoIntCompare orig, HutongGames.PlayMaker.Actions.IntCompare self)
+        {
+            if (self.integer2.Name.StartsWith("Stun"))
+            {
+                self.integer2.Value *= 3;
+                orig(self);
+                self.integer2.Value /= 3;
+            }
+            else
+            {
+                orig(self);
+            }
+        }
+        
         public override void Initialize()
         {
             Instance = this;
@@ -256,8 +300,14 @@ namespace Lightbringer
 
         private void RegisterCallbacks() 
         {
-
-        // Sprites!
+            // Tiny Shell fixes
+            On.HeroController.FaceLeft += FaceLeft;
+            On.HeroController.FaceRight += FaceRight;
+            
+            // Stun Resistance
+            On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare += DoIntCompare;
+            
+            // Sprites!
             On.ShopItemStats.Awake += Awake;
 
             // Lance Spawn
@@ -298,7 +348,6 @@ namespace Lightbringer
             ModHooks.Instance.HeroUpdateHook += Update;
 
             // Beam Damage
-            // Ghosts
             // Timescale
             // Panic Compass
             // Tiny Shell
@@ -349,6 +398,9 @@ namespace Lightbringer
 
         public void Unload()
         {
+            On.HeroController.FaceLeft -= FaceLeft;
+            On.HeroController.FaceRight -= FaceRight;
+            On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare -= DoIntCompare;
             On.ShopItemStats.Awake -= Awake;
             On.HeroController.Attack -= Attack;
             On.PlayerData.AddGeo -= AddGeo;
@@ -433,6 +485,7 @@ namespace Lightbringer
             PlayerData.instance.charmCost_35 = 5; // Radiant Jewel update patch
             PlayerData.instance.charmCost_18 = 3; // Silent Divide update patch
             PlayerData.instance.charmCost_3 = 2; // Bloodsong update patch
+            PlayerData.instance.charmCost_38 = 2; // Dreamshield update patch
         }
 
         private void BeforeSaveGameSave(SaveGameData data = null)
@@ -449,8 +502,8 @@ namespace Lightbringer
         }
 
         private const float ORIG_RUN_SPEED = 8.3f;
-        private const float ORIG_RUN_SPEED_CH = 10f;
-        private const float ORIG_RUN_SPEED_CH_COMBO = 11.5f;
+        private const float ORIG_RUN_SPEED_CH = 12f;
+        private const float ORIG_RUN_SPEED_CH_COMBO = 13.5f;
 
         private int Health(int amount)
         {
@@ -577,12 +630,7 @@ namespace Lightbringer
                 HeroController.instance.playerData.beamDamage += 5;
             }
 
-            if (HeroController.instance.playerData.equippedCharm_25 &&
-                HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
-            {
-                HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.MPCharge / 20;
-                HeroController.instance.TakeMP(7);
-            }
+            // Fragile Nightmare damage will be factored in only when firing lances
 
             if (HeroController.instance.playerData.equippedCharm_6) // Glass Soul charm replacing Fury of Fallen
             {
@@ -618,6 +666,14 @@ namespace Lightbringer
             SetAttr(HeroController.instance, "attackDuration", HeroController.instance.playerData.equippedCharm_32
                 ? HeroController.instance.ATTACK_DURATION_CH
                 : HeroController.instance.ATTACK_DURATION);
+
+            // Fragile Nightmare damage calculations
+            if (HeroController.instance.playerData.equippedCharm_25 &&
+            HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
+            {
+                HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.MPCharge / 20;
+                HeroController.instance.TakeMP(7);
+            }
 
             if (HeroController.instance.cState.wallSliding)
             {
@@ -819,6 +875,14 @@ namespace Lightbringer
                         // Upward Attack Charm #8 - RISING LIGHT //
                         if (HeroController.instance.playerData.equippedCharm_8)
                         {
+                            // Fragile Nightmare damage calculations
+                            if (HeroController.instance.playerData.equippedCharm_25 &&
+                            HeroController.instance.playerData.MPCharge > 3) // Fragile Strength > Fragile Nightmare
+                            {
+                                HeroController.instance.playerData.beamDamage += HeroController.instance.playerData.MPCharge / 20;
+                                HeroController.instance.TakeMP(7);
+                            }
+
                             HeroController.instance.playerData.nailDamage =
                                 HeroController.instance.playerData.beamDamage; // fix bug
                             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
@@ -1074,11 +1138,15 @@ namespace Lightbringer
             // EMPRESS MUZZNIK BOSS FIGHT
             if (_gruz == null)
             {
-                _gruz = GameObject.Find("Giant Fly");
-                if (_gruz != null)
-                {
-                    _gruz.AddComponent<Muzznik>();
-                }
+                    _gruz = GameObject.Find("Giant Fly");
+                    if (_gruz != null)
+                    {
+                        
+                        if(Application.loadedLevelName == "Crossroads_04")
+                        {
+                            _gruz.AddComponent<Muzznik>();
+                        }
+                    }
             }
 
             _manaRegenTime += Time.deltaTime * Time.timeScale;
