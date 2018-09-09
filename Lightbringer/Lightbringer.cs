@@ -270,9 +270,9 @@ namespace Lightbringer
             beamPrefab += critical ? "_fury" : "";
             GrubberFlyBeam = HeroController.instance.GetAttr<GameObject>(beamPrefab).Spawn(HeroController.instance.transform.position);
             Transform t = HeroController.instance.transform;
-            if (positionX != null) 
+            if (positionX != null)
                 GrubberFlyBeam.transform.SetPositionX((float) (positionX + (offset ? t.GetPositionX() : 0)));
-            if (positionY != null) 
+            if (positionY != null)
                 GrubberFlyBeam.transform.SetPositionY((float) (positionY + (offset ? t.GetPositionY() : 0)));
             GrubberFlyBeam.transform.SetScaleX((rightNegative && dir == BeamDirection.Right ? -1 : 1) * scaleX);
             GrubberFlyBeam.transform.SetScaleY(scaleY);
@@ -351,49 +351,65 @@ namespace Lightbringer
             // Tiny Shell fixes
             On.HeroController.FaceLeft += FaceLeft;
             On.HeroController.FaceRight += FaceRight;
+            
             // Stun Resistance
             On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare += DoIntCompare;
+            
             // Sprites!
             On.ShopItemStats.Awake += Awake;
+            
             // Lance Spawn 
             On.HeroController.Attack += Attack;
+            
             // Faulty Wallet
             On.PlayerData.AddGeo += AddGeo;
+            
             // Burning Blade, Fury
             On.NailSlash.StartSlash += StartSlash;
+            
             // Charm Values 
             // Restore Nail Damage 
             // SPRITES!
             ModHooks.Instance.BeforeSavegameSaveHook += BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook += AfterSaveGameLoad;
             ModHooks.Instance.SavegameSaveHook += SaveGameSave;
+            
             // Notches/HP
             ModHooks.Instance.NewGameHook += OnNewGame;
+            
             // Panic Compass
             ModHooks.Instance.BeforeAddHealthHook += Health;
             ModHooks.Instance.TakeHealthHook += Health;
+            
             // Don't hit walls w/ lances
             ModHooks.Instance.DoAttackHook += DoAttack;
             ModHooks.Instance.AfterAttackHook += AfterAttack;
+            
             // Glass Soul
             ModHooks.Instance.TakeHealthHook += TakeHealth;
+            
             // Disable Soul Gain 
             // Bloodlust
             ModHooks.Instance.SoulGainHook += SoulGain;
+            
             // Soul Gen 
             // 753/56 Easter Egg 
             // Nailmaster's Passion 
             // Add Muzznik & DoubleKin Behaviours
             ModHooks.Instance.HeroUpdateHook += Update;
+            
             // Beam Damage 
             // Timescale 
             // Panic Compass 
             // Tiny Shell
             ModHooks.Instance.CharmUpdateHook += CharmUpdate;
+            
             // Custom Text
             ModHooks.Instance.LanguageGetHook += LangGet;
+            
             // Ascending Light won't give 2 hearts
             ModHooks.Instance.BlueHealthHook += BlueHealth;
+            
             // Lance Textures 
             // Canvas for Muzznik Text Soul Orb FSM
             USceneManager.sceneLoaded += SceneLoadedHook;
