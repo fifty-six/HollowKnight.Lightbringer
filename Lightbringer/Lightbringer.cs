@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using GlobalEnums;
 using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
@@ -134,6 +135,8 @@ namespace Lightbringer
         private GameObject _gruz;
         private GameObject _kin;
         private int _hitNumber;
+
+        private Assembly _asm;
 
         internal static Lightbringer Instance;
 
@@ -351,92 +354,99 @@ namespace Lightbringer
             // Tiny Shell fixes
             On.HeroController.FaceLeft += FaceLeft;
             On.HeroController.FaceRight += FaceRight;
-            
+
             // Stun Resistance
             On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare += DoIntCompare;
-            
+
             // Sprites!
             On.ShopItemStats.Awake += Awake;
-            
+
             // Lance Spawn 
             On.HeroController.Attack += Attack;
-            
+
             // Faulty Wallet
             On.PlayerData.AddGeo += AddGeo;
-            
+
             // Burning Blade, Fury
             On.NailSlash.StartSlash += StartSlash;
-            
+
             // Charm Values 
             // Restore Nail Damage 
             // SPRITES!
             ModHooks.Instance.BeforeSavegameSaveHook += BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook += AfterSaveGameLoad;
             ModHooks.Instance.SavegameSaveHook += SaveGameSave;
-            
+
             // Notches/HP
             ModHooks.Instance.NewGameHook += OnNewGame;
-            
+
             // Panic Compass
             ModHooks.Instance.BeforeAddHealthHook += Health;
             ModHooks.Instance.TakeHealthHook += Health;
-            
+
             // Don't hit walls w/ lances
             ModHooks.Instance.DoAttackHook += DoAttack;
             ModHooks.Instance.AfterAttackHook += AfterAttack;
-            
+
             // Glass Soul
             ModHooks.Instance.TakeHealthHook += TakeHealth;
-            
+
             // Disable Soul Gain 
             // Bloodlust
             ModHooks.Instance.SoulGainHook += SoulGain;
-            
+
             // Soul Gen 
             // 753/56 Easter Egg 
             // Nailmaster's Passion 
             // Add Muzznik & DoubleKin Behaviours
             ModHooks.Instance.HeroUpdateHook += Update;
-            
+
             // Beam Damage 
             // Timescale 
             // Panic Compass 
             // Tiny Shell
             ModHooks.Instance.CharmUpdateHook += CharmUpdate;
-            
+
             // Custom Text
             ModHooks.Instance.LanguageGetHook += LangGet;
-            
+
             // Ascending Light won't give 2 hearts
             ModHooks.Instance.BlueHealthHook += BlueHealth;
-            
+
             // Lance Textures 
             // Canvas for Muzznik Text Soul Orb FSM
             USceneManager.sceneLoaded += SceneLoadedHook;
 
-            Assembly asm = Assembly.GetExecutingAssembly();
+            _asm = Assembly.GetExecutingAssembly();
             Sprites = new Dictionary<string, Sprite>();
-            foreach (string res in asm.GetManifestResourceNames())
-            {
-                if (!res.EndsWith(".png"))
-                {
-                    Log("Unknown resource: " + res);
-                    continue;
-                }
 
-                using (Stream s = asm.GetManifestResourceStream(res))
+            foreach (string res in _asm.GetManifestResourceNames())
+            {
+                // if (!res.EndsWith(".png") && !res.EndsWith(".tex"))
+                // {
+                //     Log("Unknown resource: " + res);
+                //     continue;
+                // }
+
+                using (Stream s = _asm.GetManifestResourceStream(res))
                 {
                     if (s == null) continue;
+
                     byte[] buffer = new byte[s.Length];
                     s.Read(buffer, 0, buffer.Length);
                     s.Dispose();
+
                     //Create texture from bytes 
-                    Texture2D tex = new Texture2D(1, 1);
+                    var tex = new Texture2D(1, 1, TextureFormat.ARGB32, true);
+
                     tex.LoadImage(buffer);
-                    //Create sprite from texture 
-                    //Substring is to cut off the Lightbringer. and the .png 
+
+                    // Create sprite from texture 
+                    // Substring is to cut off the Lightbringer. and the .png 
                     Sprites.Add(res.Substring(23, res.Length - 27), Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)));
+
                     Log("Created sprite from embedded image: " + res);
+                    Log($"Texture: {tex.width}, {tex.height}, {tex.format}, {tex.mipmapCount > 1}, {tex.mipmapCount}");
                 }
             }
         }
@@ -514,7 +524,9 @@ namespace Lightbringer
             while (CharmIconList.Instance == null ||
                    GameManager.instance == null ||
                    HeroController.instance == null ||
-                   Sprites.Count < 20)
+                   HeroController.instance.geoCounter == null ||
+                   HeroController.instance.geoCounter.geoSprite == null ||
+                   Sprites.Count < 22)
             {
                 yield return null;
             }
@@ -523,6 +535,9 @@ namespace Lightbringer
             {
                 CharmIconList.Instance.spriteList[i] = Sprites["Charms." + i];
             }
+
+            HeroController.instance.geoCounter.geoSprite.GetComponent<tk2dSprite>().GetCurrentSpriteDef()
+                .material.mainTexture = Sprites["UI"].texture;
 
             CharmIconList.Instance.unbreakableStrength = Sprites["Charms.ustr"];
 
@@ -533,8 +548,15 @@ namespace Lightbringer
             HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
                 .mainTexture = Sprites["Lances"].texture;
 
-            InvNailSprite invNailSprite = GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("Nail")
+            HeroController.instance.gameObject.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
+                .mainTexture = Sprites["Knight"].texture;
+
+            HeroController.instance.gameObject.GetComponent<tk2dSpriteAnimator>().GetClipByName("Sprint").
+               frames[0].spriteCollection.spriteDefinitions[0].material.mainTexture = Sprites["Sprint"].texture;
+
+            var invNailSprite = GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("Nail")
                 .GetComponent<InvNailSprite>();
+
             invNailSprite.level1 = Sprites["LanceInv"];
             invNailSprite.level2 = Sprites["LanceInv"];
             invNailSprite.level3 = Sprites["LanceInv"];
@@ -691,14 +713,13 @@ namespace Lightbringer
             bool crit = false;
             if (pd.equippedCharm_3) // Bloodsong replaces Grubsong
             {
-                Random rnd = new Random(); // CRITICAL HIT CHARM
+                var rnd = new Random(); // CRITICAL HIT CHARM
+
                 int critChance = rnd.Next(1, 101);
                 pd.CountJournalEntries();
                 int critThreshold = 100 - pd.journalEntriesCompleted / 10;
-                if (critChance > Math.Min(critThreshold, 96))
-                {
-                    crit = true;
-                }
+
+                crit = critChance > Math.Min(critThreshold, 96);
 
                 if (crit)
                 {

@@ -100,6 +100,9 @@
     <EmbeddedResource Include="Resources\Muzznik.png" />
     <EmbeddedResource Include="Resources\Lances.png" />
     <EmbeddedResource Include="Resources\LanceInv.png" />
+    <EmbeddedResource Include="Resources\Knight.png" />
+    <EmbeddedResource Include="Resources\Sprint.png" />
+    <EmbeddedResource Include="Resources\UI.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
