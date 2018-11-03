@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using GlobalEnums;
 using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
@@ -206,6 +205,7 @@ namespace Lightbringer
             }
         }
 
+        #region SpawnBeam
         private void SpawnBeams(bool dir, float scaleX, float scaleY, bool critical = false, float? positionX = null, IList<float> positionY = null, bool offset = true,
             bool rightNegative = true, bool? recoil = null, Recoils recoils = Recoils.Long)
         {
@@ -271,14 +271,20 @@ namespace Lightbringer
             }
 
             beamPrefab += critical ? "_fury" : "";
-            GrubberFlyBeam = HeroController.instance.GetAttr<GameObject>(beamPrefab).Spawn(HeroController.instance.transform.position);
-            Transform t = HeroController.instance.transform;
+            
+            HeroController hc = HeroController.instance;
+            
+            GrubberFlyBeam = hc.GetAttr<GameObject>(beamPrefab).Spawn(hc.transform.position);
+            Transform t = hc.transform;
+            
             if (positionX != null)
                 GrubberFlyBeam.transform.SetPositionX((float) (positionX + (offset ? t.GetPositionX() : 0)));
             if (positionY != null)
                 GrubberFlyBeam.transform.SetPositionY((float) (positionY + (offset ? t.GetPositionY() : 0)));
+            
             GrubberFlyBeam.transform.SetScaleX((rightNegative && dir == BeamDirection.Right ? -1 : 1) * scaleX);
             GrubberFlyBeam.transform.SetScaleY(scaleY);
+            
             // ReSharper disable once SwitchStatementMissingSomeCases
             switch (recoil)
             {
@@ -295,6 +301,7 @@ namespace Lightbringer
                 Recoil(dir, recoils == Recoils.Long);
             }
         }
+        #endregion
 
         public override string GetVersion() => "v1.03";
 
@@ -602,20 +609,23 @@ namespace Lightbringer
         private static int Health(int amount)
         {
             float panicSpeed = 1f;
+            
+            HeroController hc = HeroController.instance;
+            
             if (PlayerData.instance.equippedCharm_2)
             {
                 int missingHealth = PlayerData.instance.maxHealth -
                                     PlayerData.instance.health;
                 panicSpeed += missingHealth * .03f;
-                HeroController.instance.RUN_SPEED = ORIG_RUN_SPEED * panicSpeed;
-                HeroController.instance.RUN_SPEED_CH = ORIG_RUN_SPEED_CH * panicSpeed;
-                HeroController.instance.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO * panicSpeed;
+                hc.RUN_SPEED = ORIG_RUN_SPEED * panicSpeed;
+                hc.RUN_SPEED_CH = ORIG_RUN_SPEED_CH * panicSpeed;
+                hc.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO * panicSpeed;
             }
             else
             {
-                HeroController.instance.RUN_SPEED = ORIG_RUN_SPEED;
-                HeroController.instance.RUN_SPEED_CH = ORIG_RUN_SPEED_CH;
-                HeroController.instance.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO;
+                hc.RUN_SPEED = ORIG_RUN_SPEED;
+                hc.RUN_SPEED_CH = ORIG_RUN_SPEED_CH;
+                hc.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO;
             }
 
             return amount;
@@ -929,6 +939,8 @@ namespace Lightbringer
 
         private void CharmUpdate(PlayerData pd, HeroController self)
         {
+            HeroController hc = HeroController.instance;
+            
             // Charm Costs
             SaveGameSave();
 
@@ -948,9 +960,9 @@ namespace Lightbringer
 
             if (!PlayerData.instance.equippedCharm_2)
             {
-                HeroController.instance.RUN_SPEED = ORIG_RUN_SPEED;
-                HeroController.instance.RUN_SPEED_CH = ORIG_RUN_SPEED_CH;
-                HeroController.instance.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO;
+                hc.RUN_SPEED = ORIG_RUN_SPEED;
+                hc.RUN_SPEED_CH = ORIG_RUN_SPEED_CH;
+                hc.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO;
             }
 
             pd.isInvincible = false;
