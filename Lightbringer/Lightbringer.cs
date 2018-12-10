@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,6 +15,7 @@ using Modding;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Logger = Modding.Logger;
 using Object = UnityEngine.Object;
 using Random = System.Random;
 using SetSpriteRendererSprite = HutongGames.PlayMaker.Actions.SetSpriteRendererSprite;
@@ -426,7 +428,8 @@ namespace Lightbringer
 
             _asm = Assembly.GetExecutingAssembly();
             Sprites = new Dictionary<string, Sprite>();
-
+            
+            Stopwatch overall = Stopwatch.StartNew();
             foreach (string res in _asm.GetManifestResourceNames())
             {
                 // if (!res.EndsWith(".png") && !res.EndsWith(".tex"))
@@ -444,18 +447,18 @@ namespace Lightbringer
                     s.Dispose();
 
                     //Create texture from bytes 
-                    var tex = new Texture2D(1, 1, TextureFormat.ARGB32, true);
+                    var tex = new Texture2D(2, 2);
 
-                    tex.LoadImage(buffer);
-
+                    tex.LoadImage(buffer, true);
+                    
                     // Create sprite from texture 
                     // Substring is to cut off the Lightbringer. and the .png 
                     Sprites.Add(res.Substring(23, res.Length - 27), Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)));
 
                     Log("Created sprite from embedded image: " + res);
-                    Log($"Texture: {tex.width}, {tex.height}, {tex.format}, {tex.mipmapCount > 1}, {tex.mipmapCount}");
                 }
             }
+            Log("Finished loading all images in " + overall.ElapsedMilliseconds + "ms");
         }
 
         // It should take more hits to stun bosses 
