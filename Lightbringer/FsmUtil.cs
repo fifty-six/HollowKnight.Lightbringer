@@ -248,7 +248,7 @@ namespace Lightbringer
 
         private static void Log(string str)
         {
-            Logger.Log("[FSM UTIL]: " + str);
+            Logger.LogFine("[FSM UTIL]: " + str);
         }
     }
 

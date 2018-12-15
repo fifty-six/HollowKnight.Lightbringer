@@ -27,43 +27,34 @@ namespace Lightbringer
     [UsedImplicitly]
     public partial class Lightbringer : Mod, ITogglableMod
     {
-        private const float ORIG_RUN_SPEED          = 8.3f;
-        private const float ORIG_RUN_SPEED_CH       = 12f;
+        private const float ORIG_RUN_SPEED = 8.3f;
+        private const float ORIG_RUN_SPEED_CH = 12f;
         private const float ORIG_RUN_SPEED_CH_COMBO = 13.5f;
 
         internal static Lightbringer Instance;
 
-        private Assembly   _asm;
+        private Assembly _asm;
         private GameObject _canvas;
 
         private GameObject _gruz;
-        private int        _hitNumber;
+        private int _hitNumber;
         private GameObject _kin;
 
         // Update Function Variables
         private float _manaRegenTime = Time.deltaTime;
 
         private float _origNailTerrainCheckTime;
-        private bool  _passionDirection = true;
-        private float _passionTime      = Time.deltaTime;
+        private bool _passionDirection = true;
+        private float _passionTime = Time.deltaTime;
 
-        private  Text                       _textObj;
-        private  float                      _timefracture;
+        private Text _textObj;
+        private float _timefracture;
+
         internal Dictionary<string, Sprite> Sprites;
 
-        private static GameObject GrubberFlyBeam
-        {
-            get => HeroController.instance.GetAttr<GameObject>("grubberFlyBeam");
-            set => HeroController.instance.SetAttr("grubberFlyBeam", value);
-        }
+        internal static readonly Random Random = new Random();
 
-        private static PlayMakerFSM SlashFsm
-        {
-            get => HeroController.instance.GetAttr<PlayMakerFSM>("slashFsm");
-            set => HeroController.instance.SetAttr("slashFsm", value);
-        }
-
-        internal SpriteFlash SpriteFlash { get; } = HeroController.instance.GetAttr<SpriteFlash>("spriteFlash");
+        internal static SpriteFlash SpriteFlash { get; } = HeroController.instance.GetAttr<SpriteFlash>("spriteFlash");
 
         public override string GetVersion()
         {
@@ -113,48 +104,35 @@ namespace Lightbringer
                 BeforeSaveGameSave();
         }
 
-        private void Recoil(BeamDirection dir, bool @long)
+        private void Attack(On.HeroController.orig_Attack orig, HeroController self, AttackDirection attackdir)
         {
-            // The directions are flipped cause you recoil the opposite of the direction you attack
-            // ReSharper disable once SwitchStatementMissingSomeCases
-            switch (dir)
-            {
-                case BeamDirection.Right:
-                    if (@long)
-                    {
-                        HeroController.instance.RecoilLeftLong();
-                        break;
-                    }
-
-                    HeroController.instance.RecoilLeft();
-                    break;
-                case BeamDirection.Left:
-                    if (@long)
-                    {
-                        HeroController.instance.RecoilRightLong();
-                        break;
-                    }
-
-                    HeroController.instance.RecoilRight();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
-            }
+            new AttackHandler(_timefracture).Attack(self, attackdir);
         }
 
         private void CreateCanvas()
         {
             if (_canvas != null) return;
+
             CanvasUtil.CreateFonts();
             _canvas = CanvasUtil.CreateCanvas(RenderMode.ScreenSpaceOverlay, new Vector2(1920, 1080));
             Object.DontDestroyOnLoad(_canvas);
-            GameObject gameObject = CanvasUtil.CreateTextPanel(_canvas, "", 27, TextAnchor.MiddleCenter,
-                                                               new CanvasUtil.RectData(
-                                                                   new Vector2(0, 50),
-                                                                   new Vector2(0, 45),
-                                                                   new Vector2(0, 0),
-                                                                   new Vector2(1, 0),
-                                                                   new Vector2(0.5f, 0.5f)));
+
+            GameObject gameObject = CanvasUtil.CreateTextPanel
+            (
+                _canvas,
+                "",
+                27,
+                TextAnchor.MiddleCenter,
+                new CanvasUtil.RectData
+                (
+                    new Vector2(0, 50),
+                    new Vector2(0, 45),
+                    new Vector2(0, 0),
+                    new Vector2(1, 0),
+                    new Vector2(0.5f, 0.5f)
+                )
+            );
+
             _textObj = gameObject.GetComponent<Text>();
             _textObj.font = CanvasUtil.TrajanBold;
             _textObj.text = "";
@@ -353,8 +331,6 @@ namespace Lightbringer
             invNailSprite.level3 = Sprites["LanceInv"];
             invNailSprite.level4 = Sprites["LanceInv"];
             invNailSprite.level5 = Sprites["LanceInv"];
-
-            Log("Changed Sprites!");
         }
 
 
@@ -456,246 +432,6 @@ namespace Lightbringer
             }
         }
 
-        private void Attack(On.HeroController.orig_Attack orig, HeroController self, AttackDirection attackDir)
-        {
-            PlayerData pd = PlayerData.instance;
-
-            self.cState.altAttack = false;
-            self.cState.attacking = true;
-
-            #region Damage Controller
-
-            // NAIL
-            pd.nailDamage = 1 + pd.nailSmithUpgrades * 2;
-            // Mark of Pride
-            if (pd.equippedCharm_13)
-            {
-                pd.CountGameCompletion();
-                pd.nailDamage += (int) pd.completionPercentage / 8;
-            }
-
-            PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-
-            // LANCE
-            pd.beamDamage = 3 + pd.nailSmithUpgrades * 3;
-
-            // Radiant Jewel (Elegy)
-            if (pd.equippedCharm_35) pd.beamDamage += 5;
-
-            // Fragile Nightmare damage will be factored in only when firing lances
-            if (pd.equippedCharm_6) // Glass Soul charm replacing Fury of Fallen
-                pd.beamDamage += pd.health + pd.healthBlue - 3;
-
-            #endregion
-
-            bool crit = false;
-            if (pd.equippedCharm_3) // Bloodsong replaces Grubsong
-            {
-                var rnd = new Random(); // CRITICAL HIT CHARM
-
-                int critChance = rnd.Next(1, 101);
-                pd.CountJournalEntries();
-                int critThreshold = 100 - pd.journalEntriesCompleted / 10;
-
-                crit = critChance > Math.Min(critThreshold, 96);
-
-                if (crit)
-                {
-                    pd.beamDamage *= 3;
-                    self.shadowRingPrefab.Spawn(self.transform.position);
-                    self.GetAttr<AudioSource>("audioSource")
-                        .PlayOneShot(self.nailArtChargeComplete, 1f);
-                }
-            }
-
-            int lanceDamage = pd.beamDamage;
-
-            // QUICK SLASH CHARM #REEE32
-            self.SetAttr("attackDuration", pd.equippedCharm_32
-                             ? self.ATTACK_DURATION_CH
-                             : self.ATTACK_DURATION);
-
-            // Fragile Nightmare damage calculations
-            if (pd.equippedCharm_25 &&
-                pd.MPCharge > 3) // Fragile Strength > Fragile Nightmare
-            {
-                pd.beamDamage += pd.MPCharge / 20;
-                self.TakeMP(7);
-            }
-
-            if (pd.equippedCharm_38) self.fsm_orbitShield.SendEvent("SLASH");
-
-            if (self.cState.wallSliding)
-            {
-                pd.nailDamage =
-                    pd.beamDamage; // fix bug
-                PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-                pd.beamDamage = lanceDamage;
-
-                self.SetAttr("wallSlashing", true);
-                bool x = self.cState.facingRight;
-                SpawnBeam(x ? BeamDirection.Left : BeamDirection.Right, 1f, 1f, crit);
-                return;
-            }
-
-            self.SetAttr("wallSlashing", false);
-            switch (attackDir)
-            {
-                #region Normal Attack
-
-                case AttackDirection.normal:
-                    // fix bug
-                    pd.nailDamage = pd.beamDamage;
-                    PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-                    pd.beamDamage = lanceDamage;
-
-                    self.SetAttr("slashComponent", self.normalSlash);
-
-                    SlashFsm = self.normalSlashFsm;
-                    SlashFsm.FsmVariables.GetFsmFloat("direction").Value = self.cState.facingRight
-                        ? 0f
-                        : 180f;
-
-                    self.normalSlash.StartSlash();
-
-                    bool tShell = pd.equippedCharm_4;
-
-                    if (pd.equippedCharm_19)
-                    {
-                        if (pd.MPCharge > 10)
-                        {
-                            if (!crit) self.TakeMP(10);
-
-                            self.spell1Prefab.Spawn(
-                                self.transform.position +
-                                (tShell
-                                    ? new Vector3(0f, .6f)
-                                    : new Vector3(0f, .3f)));
-                        }
-                        else
-                        {
-                            self.GetAttr<AudioSource>("audioSource")
-                                .PlayOneShot(self.blockerImpact, 1f);
-                        }
-
-                        return;
-                    }
-
-                    // ReSharper disable once UnusedVariable
-                    float[] positionY = pd.equippedCharm_35
-                        ? tShell ? new[] {.2f, .7f} : new[] {0f, .9f}
-                        : null;
-
-                    // Grubberfly's Elegy
-                    if (pd.equippedCharm_35)
-                    {
-                        // Longnail AND/OR Soul Catcher
-                        if (pd.equippedCharm_20)
-                        {
-                            bool longnail = pd.equippedCharm_18;
-
-                            if (self.cState.facingRight || longnail)
-                                SpawnBeams(BeamDirection.Right, 1.5f, 1.5f, crit, positionY: tShell ? new[] {.2f, .7f} : new[] {0f, .9f});
-
-                            if (!self.cState.facingRight || longnail)
-                                SpawnBeams(BeamDirection.Left, 1.5f, 1.5f, crit, positionY: tShell ? new[] {.2f, .7f} : new[] {0f, .9f});
-                        }
-                        // Longnail
-                        else if (pd.equippedCharm_18)
-                        {
-                            SpawnBeams(1.5f, 1.5f, crit, positionY: tShell ? .2f : .1f);
-                        }
-                        else
-                        {
-                            SpawnBeam(self.cState.facingRight, 1.5f, 1.5f, crit, positionY: tShell ? .2f : .1f, recoil: tShell);
-                        }
-                    }
-                    // Longnail AND Soul Catcher
-                    else if (pd.equippedCharm_20 && pd.equippedCharm_18)
-                    {
-                        SpawnBeams(1f, 1f, crit, positionY: tShell ? new float[] {-.2f, .7f} : new float[] {.5f, -.4f});
-                    }
-                    // Soul Catcher
-                    else if (pd.equippedCharm_20)
-                    {
-                        SpawnBeams(self.cState.facingRight, 1f, 1f, crit, positionY: tShell ? new[] {-.2f, .7f} : new[] {.5f, -.4f}, recoils: Recoils.None);
-                    }
-                    // Longnail
-                    else if (pd.equippedCharm_18)
-                    {
-                        SpawnBeams(1f, 1f, crit);
-                    }
-                    else // player has no charms
-                    {
-                        SpawnBeam(self.cState.facingRight, 1f, 1f, crit);
-                    }
-
-                    break;
-                // attack upwards
-
-                #endregion
-
-                #region Upwards Attack
-
-                case AttackDirection.upward:
-                    // Timescale Charm #14 - TIME FRACTURE //
-                    if (pd.equippedCharm_14 && _timefracture < 2f)
-                    {
-                        _timefracture += 0.1f;
-                        SpriteFlash.flash(Color.white, 0.85f, 0.35f, 0f, 0.35f);
-                    }
-
-                    // Upward Attack Charm #8 - RISING LIGHT //
-                    if (pd.equippedCharm_8)
-                    {
-                        // Fragile Nightmare damage calculations
-                        if (pd.equippedCharm_25 &&
-                            pd.MPCharge > 3)
-                        {
-                            pd.beamDamage += pd.MPCharge / 20;
-                            self.TakeMP(7);
-                        }
-
-
-                        pd.nailDamage = pd.beamDamage;
-                        PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
-                        pd.beamDamage = lanceDamage;
-
-                        foreach (float i in new float[] {0.5f, 0.85f, 1.2f, 1.55f, .15f, -.2f, -.55f, -.9f})
-                        {
-                            SpawnBeam(BeamDirection.Up, 0.6f, 0.6f, crit, i);
-                            GrubberFlyBeam.transform.Rotate(0f, 0f, -90f);
-                        }
-                    }
-
-                    self.SetAttr("slashComponent", self.upSlash);
-                    self.SetAttr("slashFsm", self.upSlashFsm);
-                    self.cState.upAttacking = true;
-                    self.GetAttr<PlayMakerFSM>("slashFsm")
-                        .FsmVariables.GetFsmFloat("direction")
-                        .Value = 90f;
-                    self.GetAttr<NailSlash>("slashComponent").StartSlash();
-                    break;
-
-                #endregion
-
-                #region Down
-
-                case AttackDirection.downward:
-                    self.SetAttr("slashComponent", self.downSlash);
-                    self.SetAttr("slashFsm", self.downSlashFsm);
-                    self.cState.downAttacking = true;
-                    self.downSlashFsm.FsmVariables.GetFsmFloat("direction").Value = 270f;
-                    self.GetAttr<NailSlash>("slashComponent").StartSlash();
-                    break;
-
-                #endregion
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(attackDir), attackDir, null);
-            }
-        }
-
         private void CharmUpdate(PlayerData pd, HeroController self)
         {
             HeroController hc = HeroController.instance;
@@ -749,7 +485,7 @@ namespace Lightbringer
             GameManager.instance.StartCoroutine(SceneLoaded(arg0));
         }
 
-        private IEnumerator<YieldInstruction> SceneLoaded(Scene arg0)
+        private IEnumerator SceneLoaded(Scene arg0)
         {
             yield return null;
             yield return null;
@@ -871,7 +607,7 @@ namespace Lightbringer
                     // Easter Eg.11g
                     case 753:
                         HeroController.instance.AddMPChargeSpa(3);
-                        int num = new Random().Next(1, 6);
+                        int num = Random.Next(1, 6);
                         switch (num)
                         {
                             case 1:
@@ -912,176 +648,15 @@ namespace Lightbringer
             _passionTime -= 2f;
             _passionDirection = !_passionDirection;
 
-            float num2 = (_passionDirection ? -1 : 1) * new Random().Next(3, 12);
-            SpawnBeam(_passionDirection ? BeamDirection.Right : BeamDirection.Left, 1f, 1f, positionX: num2,
-                      positionY: -0.5f + num2 / 6f);
+            float posX = (_passionDirection ? -1 : 1) * Random.Next(3, 12);
+            new AttackHandler().SpawnBeam
+            (
+                _passionDirection,
+                1f,
+                1f,
+                posX,
+                -0.5f + posX / 6f
+            );
         }
-
-        private enum Recoils
-        {
-            None,
-            Normal,
-            Long
-        }
-
-        // Down isn't here cause elegy doesn't have it
-        private enum BeamDirection
-        {
-            Up,
-            Down,
-            Right,
-            Left
-        }
-
-        #region SpawnBeam
-
-        private void SpawnBeams
-        (
-            bool         dir,
-            float        scaleX,
-            float        scaleY,
-            bool         critical      = false,
-            float?       positionX     = null,
-            IList<float> positionY     = null,
-            bool         offset        = true,
-            bool         rightNegative = true,
-            bool?        recoil        = null,
-            Recoils      recoils       = Recoils.Long
-        )
-        {
-            SpawnBeams(dir ? BeamDirection.Right : BeamDirection.Left, scaleX, scaleY, critical, positionX, positionY, offset, rightNegative, recoil, recoils);
-        }
-
-        private void SpawnBeams
-        (
-            BeamDirection dir,
-            float         scaleX,
-            float         scaleY,
-            bool          critical      = false,
-            float?        positionX     = null,
-            IList<float>  positionY     = null,
-            bool          offset        = true,
-            bool          rightNegative = true,
-            bool?         recoil        = null,
-            Recoils       recoils       = Recoils.Long
-        )
-        {
-            SpawnBeam(dir, scaleX, scaleY, critical, positionX, positionY?[0], offset, rightNegative, recoil, recoils);
-            SpawnBeam(dir, scaleX, scaleY, critical, positionX, positionY?[1], offset, rightNegative, recoil, recoils);
-        }
-
-        private void SpawnBeams
-        (
-            float   scaleX,
-            float   scaleY,
-            bool    critical      = false,
-            float?  positionX     = null,
-            object  positionY     = null,
-            bool    offset        = true,
-            bool    rightNegative = true,
-            bool?   recoil        = null,
-            Recoils recoils       = Recoils.None
-        )
-        {
-            switch (positionY)
-            {
-                case float posY:
-                    SpawnBeam(BeamDirection.Left, scaleX, scaleY, critical, positionX, posY, offset, rightNegative, recoil, recoils);
-                    SpawnBeam(BeamDirection.Right, scaleX, scaleY, critical, positionX, posY, offset, rightNegative, recoil, recoils);
-                    break;
-                case float[] posYs:
-                    foreach (float y in posYs)
-                    {
-                        SpawnBeams(scaleX, scaleY, critical, positionX, y, offset, rightNegative, recoil, recoils);
-                        SpawnBeams(scaleX, scaleY, critical, positionX, y, offset, rightNegative, recoil, recoils);
-                    }
-
-                    break;
-                case null:
-                    SpawnBeam(BeamDirection.Left, scaleX, scaleY, critical, positionX, null, offset, rightNegative, recoil, recoils);
-                    SpawnBeam(BeamDirection.Right, scaleX, scaleY, critical, positionX, null, offset, rightNegative, recoil, recoils);
-                    break;
-            }
-        }
-
-        private void SpawnBeam
-        (
-            bool    dir,
-            float   scaleX,
-            float   scaleY,
-            bool    critical      = false,
-            float?  positionX     = null,
-            float?  positionY     = null,
-            bool    offset        = true,
-            bool    rightNegative = true,
-            bool?   recoil        = null,
-            Recoils recoils       = Recoils.None
-        )
-        {
-            SpawnBeam(dir ? BeamDirection.Right : BeamDirection.Left, scaleX, scaleY, critical, positionX, positionY, offset, rightNegative, recoil, recoils);
-        }
-
-        private void SpawnBeam
-        (
-            BeamDirection dir,
-            float         scaleX,
-            float         scaleY,
-            bool          critical      = false,
-            float?        positionX     = null,
-            float?        positionY     = null,
-            bool          offset        = true,
-            bool          rightNegative = true,
-            bool?         recoil        = null,
-            Recoils       recoils       = Recoils.None
-        )
-        {
-            string beamPrefab = "grubberFlyBeamPrefab";
-            switch (dir)
-            {
-                case BeamDirection.Up:
-                    beamPrefab += "U";
-                    break;
-                case BeamDirection.Down:
-                    beamPrefab += "D";
-                    break;
-                case BeamDirection.Right:
-                    beamPrefab += "R";
-                    break;
-                case BeamDirection.Left:
-                    beamPrefab += "L";
-                    break;
-                default: throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
-            }
-
-            beamPrefab += critical ? "_fury" : "";
-
-            HeroController hc = HeroController.instance;
-
-            GrubberFlyBeam = hc.GetAttr<GameObject>(beamPrefab).Spawn(hc.transform.position);
-            Transform t = hc.transform;
-
-            if (positionX != null)
-                GrubberFlyBeam.transform.SetPositionX((float) (positionX + (offset ? t.GetPositionX() : 0)));
-            if (positionY != null)
-                GrubberFlyBeam.transform.SetPositionY((float) (positionY + (offset ? t.GetPositionY() : 0)));
-
-            GrubberFlyBeam.transform.SetScaleX((rightNegative && dir == BeamDirection.Right ? -1 : 1) * scaleX);
-            GrubberFlyBeam.transform.SetScaleY(scaleY);
-
-            // ReSharper disable once SwitchStatementMissingSomeCases
-            switch (recoil)
-            {
-                case true:
-                    recoils = Recoils.Long;
-                    break;
-                case false:
-                    recoils = Recoils.Normal;
-                    break;
-            }
-
-            if (recoils != Recoils.None) Recoil(dir, recoils == Recoils.Long);
-        }
-
-        #endregion
     }
 }

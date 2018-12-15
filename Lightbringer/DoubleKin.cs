@@ -22,7 +22,7 @@ namespace Lightbringer
             {
                 _kinFight[0] = true;
                 HeroController.instance.playerData.isInvincible = true; // temporary invincibility iFrames
-                Lightbringer.Instance.SpriteFlash.flash(Color.black, 0.6f, 0.15f, 0f, 0.55f);
+                Lightbringer.SpriteFlash.flash(Color.black, 0.6f, 0.15f, 0f, 0.55f);
                 _kinFight[5] = true; // iFrames
                 _kinTwo = Instantiate(gameObject);
                 _kinTwo.GetComponent<HealthManager>().hp = 99999;
