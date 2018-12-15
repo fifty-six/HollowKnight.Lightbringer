@@ -5,9 +5,9 @@ namespace Lightbringer
     public class DoubleKin : MonoBehaviour
     {
         private HealthManager _hm;
-        private bool[] _kinFight;
-        private GameObject _kinTwo;
-        private float _invincibleTime = Time.deltaTime;
+        private float         _invincibleTime = Time.deltaTime;
+        private bool[]        _kinFight;
+        private GameObject    _kinTwo;
 
         private void Start()
         {

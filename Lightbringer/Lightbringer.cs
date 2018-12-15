@@ -7,15 +7,14 @@ using System.Linq;
 using System.Reflection;
 using GlobalEnums;
 using HutongGames.PlayMaker;
-using HutongGames.PlayMaker.Actions;
 using JetBrains.Annotations;
 using ModCommon;
 using ModCommon.Util;
 using Modding;
+using On.HutongGames.PlayMaker.Actions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Logger = Modding.Logger;
 using Object = UnityEngine.Object;
 using Random = System.Random;
 using SetSpriteRendererSprite = HutongGames.PlayMaker.Actions.SetSpriteRendererSprite;
@@ -26,126 +25,31 @@ using USceneManager = UnityEngine.SceneManagement.SceneManager;
 namespace Lightbringer
 {
     [UsedImplicitly]
-    public class Lightbringer : Mod, ITogglableMod
+    public partial class Lightbringer : Mod, ITogglableMod
     {
-        private readonly Dictionary<string, string> _langDict = new Dictionary<string, string>
-        {
-            #region Charm Descriptions
-
-            ["CHARM_DESC_13"] =
-                "Trophy given to those proven to be worthy. A requirement for any who wish to master the nail.\n\nGreatly increases the range of the bearer's nail and causes it to deal more damage based on what they have accomplished.",
-            ["CHARM_DESC_14"] = "What is this? Why does it exist? Is it safe to use?\n\nSlashing upwards speeds up the flow of time. Taking damage will break the effect.",
-            ["CHARM_DESC_15"] = "A small trinket made of valuable metal and precious stone.\n\nLanding five successful nail attacks on an enemy will restore health.",
-            ["CHARM_DESC_17"] =
-                "Composed of living fungal matter. Scatters spores when exposed to SOUL.\n\nWhen focusing SOUL, emit a spore cloud that slowly damages enemies. Increases SOUL regeneration rate slightly.",
-            ["CHARM_DESC_18"] = "A metal badge that is cold to the touch. It brings back warm memories.\n\nFire lances in both directions when attacking.",
-            ["CHARM_DESC_20"] =
-                "A token given to those embarking on a great journey.\n\nSplit the lance attack into two projectiles, allowing the user to hit multiple enemies at once (cannot hit the same enemy twice).",
-            ["CHARM_DESC_21"] = "A poorly made wallet that seems to lose all the geo you put in it.\n\nPicked up geo is converted directly into SOUL.",
-            ["CHARM_DESC_22"] =
-                "Drains the SOUL of its bearer and uses it to birth hatchlings.\n\nThe hatchlings have no desire to eat or live, and will sacrifice themselves to protect their parent. Increases SOUL regeneration rate slightly.",
-            ["CHARM_DESC_25"] =
-                "Attacks cost a small amount of SOUL but lance damage is increased based on current SOUL (up to +10 damage). Increases SOUL regeneration rate slightly.\n\nThis charm is fragile, and will break if its bearer is killed.",
-            ["CHARM_DESC_26"] = "Contains the passion, skill, and regrets of a Nailmaster.\n\nCharge nail arts faster and summon lances around the user at random.",
-            ["CHARM_DESC_28"] =
-                "Reveals the form of Unn within the bearer.\n\nWhile focusing SOUL, the bearer will take on a new shape and can move freely to avoid enemies. Increases SOUL regeneration rate slightly.",
-            ["CHARM_DESC_30"] =
-                "Transient charm created for those who wield the Dream Nail and collect Essence.\n\nAllows the bearer to charge the Dream Nail faster and collect more SOUL with it. Increases SOUL regeneration rate slightly.",
-            ["CHARM_DESC_32"] = "Born from imperfect, discarded nails that have fused together. The nails still long to be wielded.\n\nIncreases attack speed moderately.",
-            ["CHARM_DESC_34"] =
-                "Naturally formed within a crystal over a long period. Draws in SOUL from the surrounding air.\n\nThe bearer will focus SOUL at a slower rate, but the healing effect will double and holy power is unleashed. Increases SOUL regeneration rate slightly.",
-            ["CHARM_DESC_35"] = "Imbues the lance with holy energy.\n\nGreatly increases damage and lance size.",
-            ["CHARM_DESC_25_G"] =
-                "Attacks cost a small amount of SOUL but lance damage is increased based on current SOUL (up to +10 damage). Increases SOUL regeneration rate slightly.\n\nThis charm is unbreakable.",
-            ["CHARM_DESC_6"] = "Reserved for only the strongest of challengers.\n\nAmplifies lance damage based on current health, but the user will be destroyed in a single blow.",
-            ["CHARM_DESC_25_BROKEN"] =
-                "Attacks cost a small amount of SOUL but lance damage is increased based on current SOUL (up to +10 damage). Increases SOUL regeneration rate slightly.\n\nThis charm has broken, and the power inside has been silenced. It can not be equipped.",
-            ["CHARM_DESC_1"] = "A swarm will follow the bearer and gather up any loose Geo.\n\nUseful for those who can't bear to leave anything behind, no matter how insignificant.",
-            ["CHARM_DESC_8"] = "A metal shell that vibrates continuously.\n\nAttacking upwards releases a barrage of lances.",
-            ["CHARM_DESC_19"] =
-                "An artifact said to bring out the true power hidden inside of its user.\n\nIncreases the power of spells, dealing more damage to foes. Replaces some attacks with intense blasts of energy. Increases SOUL regeneration rate slightly.",
-            ["CHARM_DESC_2"] =
-                "Whispers its location to the bearer whenever a map is open, allowing wanderers to pinpoint their current location.\n\nIncreases the wearer's movement speed by 3% for each missing mask.",
-            ["CHARM_DESC_3"] =
-                "A pendant forged from bone and blood. Do you feel guilty, or proud?\n\nGain a chance to make a critical damage attack. This chance increases with each new victim you claim (in your Hunter's Journal).",
-            ["CHARM_DESC_4"] = "A shell suited for someone tiny yet tough. When recovering from damage, the bearer will remain invulnerable for longer.\n\nDecreases your size by 25%.",
-
-            #endregion
-
-            #region Shop Descriptions 
-
-            ["SHOP_DESC_WAYWARDCOMPASS"] =
-                "Highly recommended! If you're having trouble finding your way in the maze of ruins below us, try this charm.\n\nIt will pinpoint your location on your map, and even help you get around a bit quicker!",
-            ["SHOP_DESC_SPELLDMGUP"] =
-                "Are you a spellcaster, you little scoundrel? Ho ho! I'm only teasing.\n\nIf you ever learn any spells you should buy this charm for yourself. I've heard it can awaken hidden powers in whoever holds it!",
-            ["SHOP_DESC_ENEMYRECOILUP"] = "Tired of having to heal in the middle of a fight? With this charm equipped, you can just whack enemies with your nail until your health is back!",
-            ["SHOP_DESC_BLUEHEALTHSMALL"] = "Having trouble taking out enemies that fly high above you?\n\nWith this, you can fire lances into the sky!",
-            ["SHOP_DESC_LONGNAIL"] =
-                "Are you tired of only attacking in one direction?\n\nHo! Ho ho ho! Go on, take this charm home with you. It may provide the service you are looking for...",
-            ["SHOP_DESC_NORECOIL"] = "I don't know where this came from... Was it always here? Should I sell it?\n\nWhatever it is, it should be used with extreme caution.",
-            ["SHOP_DESC_STALWARTSHELL"] =
-                "Life in Hallownest can be tough, always taking hits and getting knocked around. The bigger you are, the harder you fall. This charm is the solution to that.",
-
-            #endregion
-
-            #region Nail 
-
-            ["INV_NAME_NAIL1"] = "Lance of Light",
-            ["INV_NAME_NAIL2"] = "Lance of Light +1",
-            ["INV_NAME_NAIL3"] = "Lance of Light +2",
-            ["INV_NAME_NAIL4"] = "Lance of Light +3",
-            ["INV_NAME_NAIL5"] = "Severance",
-            ["INV_DESC_NAIL1"] = "Summons a lance of light from thin air to destroy your enemies.",
-            ["INV_DESC_NAIL2"] = "Summons a lance of light from thin air to destroy your enemies.",
-            ["INV_DESC_NAIL3"] = "Summons a lance of light from thin air to destroy your enemies.",
-            ["INV_DESC_NAIL4"] = "Summons a lance of light from thin air to destroy your enemies.",
-            ["INV_DESC_NAIL5"] = "It is time. Bring forth the light.",
-
-            #endregion
-
-            #region Charm Names 
-
-            ["CHARM_NAME_2"] = "Panic Compass",
-            ["CHARM_NAME_3"] = "Bloodsong",
-            ["CHARM_NAME_4"] = "Tiny Shell",
-            ["CHARM_NAME_6"] = "Glass Soul",
-            ["CHARM_NAME_8"] = "Rising Light",
-            ["CHARM_NAME_13"] = "Burning Pride",
-            ["CHARM_NAME_14"] = "Time Fracture",
-            ["CHARM_NAME_15"] = "Bloodlust",
-            ["CHARM_NAME_18"] = "Silent Divide",
-            ["CHARM_NAME_19"] = "Eye of the Storm",
-            ["CHARM_NAME_20"] = "Twin Fangs",
-            ["CHARM_NAME_21"] = "Faulty Wallet",
-            ["CHARM_NAME_25"] = "Fragile Nightmare",
-            ["CHARM_NAME_25_BRK"] = "Fragile Nightmare (Repair)",
-            ["CHARM_NAME_25_G"] = "Unbreakable Nightmare",
-            ["CHARM_NAME_26"] = "Nailmaster's Passion",
-            ["CHARM_NAME_35"] = "Radiant Jewel",
-
-            #endregion
-
-            #region Muzznik 
-
-            ["BIGFLY_MAIN"] = "EMPRESS",
-            ["BIGFLY_SUB"] = "MUZZNIK"
-
-            #endregion
-        };
-
-        private GameObject _gruz;
-        private GameObject _kin;
-        private int _hitNumber;
-
-        private Assembly _asm;
+        private const float ORIG_RUN_SPEED          = 8.3f;
+        private const float ORIG_RUN_SPEED_CH       = 12f;
+        private const float ORIG_RUN_SPEED_CH_COMBO = 13.5f;
 
         internal static Lightbringer Instance;
 
+        private Assembly   _asm;
+        private GameObject _canvas;
+
+        private GameObject _gruz;
+        private int        _hitNumber;
+        private GameObject _kin;
+
         // Update Function Variables
         private float _manaRegenTime = Time.deltaTime;
-        private bool _passionDirection = true;
-        private float _passionTime = Time.deltaTime;
-        private float _timefracture;
+
+        private float _origNailTerrainCheckTime;
+        private bool  _passionDirection = true;
+        private float _passionTime      = Time.deltaTime;
+
+        private  Text                       _textObj;
+        private  float                      _timefracture;
+        internal Dictionary<string, Sprite> Sprites;
 
         private static GameObject GrubberFlyBeam
         {
@@ -160,22 +64,53 @@ namespace Lightbringer
         }
 
         internal SpriteFlash SpriteFlash { get; } = HeroController.instance.GetAttr<SpriteFlash>("spriteFlash");
-        internal Dictionary<string, Sprite> Sprites;
 
-        private enum Recoils
+        public override string GetVersion()
         {
-            None,
-            Normal,
-            Long
+            return "v1.03";
         }
 
-        // Down isn't here cause elegy doesn't have it
-        private enum BeamDirection
+        public override void Initialize()
         {
-            Up,
-            Down,
-            Right,
-            Left
+            Instance = this;
+            try
+            {
+                RegisterCallbacks();
+            }
+            catch
+            {
+                CreateCanvas();
+                _textObj.text = "Lightbringer requires ModCommon to function! Install it!";
+                _textObj.CrossFadeAlpha(1f, 0f, false);
+            }
+        }
+
+        public void Unload()
+        {
+            On.HeroController.FaceLeft -= TinyShell.FaceLeft;
+            On.HeroController.FaceRight -= TinyShell.FaceRight;
+            IntCompare.DoIntCompare -= DoIntCompare;
+            On.ShopItemStats.Awake -= Awake;
+            On.HeroController.Attack -= Attack;
+            On.PlayerData.AddGeo -= AddGeo;
+            On.NailSlash.StartSlash -= StartSlash;
+            ModHooks.Instance.BeforeSavegameSaveHook -= BeforeSaveGameSave;
+            ModHooks.Instance.AfterSavegameLoadHook -= AfterSaveGameLoad;
+            ModHooks.Instance.SavegameSaveHook -= SaveGameSave;
+            ModHooks.Instance.NewGameHook -= OnNewGame;
+            ModHooks.Instance.TakeHealthHook -= Health;
+            ModHooks.Instance.DoAttackHook -= DoAttack;
+            ModHooks.Instance.AfterAttackHook -= AfterAttack;
+            ModHooks.Instance.TakeHealthHook -= TakeHealth;
+            ModHooks.Instance.SoulGainHook -= SoulGain;
+            ModHooks.Instance.HeroUpdateHook -= Update;
+            ModHooks.Instance.CharmUpdateHook -= CharmUpdate;
+            ModHooks.Instance.LanguageGetHook -= LangGet;
+            ModHooks.Instance.BlueHealthHook -= BlueHealth;
+            USceneManager.sceneLoaded -= SceneLoadedHook;
+
+            if (PlayerData.instance != null)
+                BeforeSaveGameSave();
         }
 
         private void Recoil(BeamDirection dir, bool @long)
@@ -207,106 +142,6 @@ namespace Lightbringer
             }
         }
 
-        #region SpawnBeam
-        private void SpawnBeams(bool dir, float scaleX, float scaleY, bool critical = false, float? positionX = null, IList<float> positionY = null, bool offset = true,
-            bool rightNegative = true, bool? recoil = null, Recoils recoils = Recoils.Long)
-        {
-            SpawnBeams(dir ? BeamDirection.Right : BeamDirection.Left, scaleX, scaleY, critical, positionX, positionY, offset, rightNegative, recoil, recoils);
-        }
-
-        private void SpawnBeams(BeamDirection dir, float scaleX, float scaleY, bool critical = false, float? positionX = null, IList<float> positionY = null, bool offset = true,
-            bool rightNegative = true, bool? recoil = null, Recoils recoils = Recoils.Long)
-        {
-            SpawnBeam(dir, scaleX, scaleY, critical, positionX, positionY?[0], offset, rightNegative, recoil, recoils);
-            SpawnBeam(dir, scaleX, scaleY, critical, positionX, positionY?[1], offset, rightNegative, recoil, recoils);
-        }
-
-        private void SpawnBeams(float scaleX, float scaleY, bool critical = false, float? positionX = null, object positionY = null, bool offset = true, bool rightNegative = true,
-            bool? recoil = null, Recoils recoils = Recoils.None)
-        {
-            switch (positionY)
-            {
-                case float posY:
-                    SpawnBeam(BeamDirection.Left, scaleX, scaleY, critical, positionX, posY, offset, rightNegative, recoil, recoils);
-                    SpawnBeam(BeamDirection.Right, scaleX, scaleY, critical, positionX, posY, offset, rightNegative, recoil, recoils);
-                    break;
-                case float[] posYs:
-                    foreach (float y in posYs)
-                    {
-                        SpawnBeams(scaleX, scaleY, critical, positionX, y, offset, rightNegative, recoil, recoils);
-                        SpawnBeams(scaleX, scaleY, critical, positionX, y, offset, rightNegative, recoil, recoils);
-                    }
-
-                    break;
-                case null:
-                    SpawnBeam(BeamDirection.Left, scaleX, scaleY, critical, positionX, null, offset, rightNegative, recoil, recoils);
-                    SpawnBeam(BeamDirection.Right, scaleX, scaleY, critical, positionX, null, offset, rightNegative, recoil, recoils);
-                    break;
-            }
-        }
-
-        private void SpawnBeam(bool dir, float scaleX, float scaleY, bool critical = false, float? positionX = null, float? positionY = null, bool offset = true, bool rightNegative = true,
-            bool? recoil = null, Recoils recoils = Recoils.None)
-        {
-            SpawnBeam(dir ? BeamDirection.Right : BeamDirection.Left, scaleX, scaleY, critical, positionX, positionY, offset, rightNegative, recoil, recoils);
-        }
-
-        private void SpawnBeam(BeamDirection dir, float scaleX, float scaleY, bool critical = false, float? positionX = null, float? positionY = null, bool offset = true,
-            bool rightNegative = true, bool? recoil = null, Recoils recoils = Recoils.None)
-        {
-            string beamPrefab = "grubberFlyBeamPrefab";
-            switch (dir)
-            {
-                case BeamDirection.Up:
-                    beamPrefab += "U";
-                    break;
-                case BeamDirection.Down:
-                    beamPrefab += "D";
-                    break;
-                case BeamDirection.Right:
-                    beamPrefab += "R";
-                    break;
-                case BeamDirection.Left:
-                    beamPrefab += "L";
-                    break;
-                default: throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
-            }
-
-            beamPrefab += critical ? "_fury" : "";
-            
-            HeroController hc = HeroController.instance;
-            
-            GrubberFlyBeam = hc.GetAttr<GameObject>(beamPrefab).Spawn(hc.transform.position);
-            Transform t = hc.transform;
-            
-            if (positionX != null)
-                GrubberFlyBeam.transform.SetPositionX((float) (positionX + (offset ? t.GetPositionX() : 0)));
-            if (positionY != null)
-                GrubberFlyBeam.transform.SetPositionY((float) (positionY + (offset ? t.GetPositionY() : 0)));
-            
-            GrubberFlyBeam.transform.SetScaleX((rightNegative && dir == BeamDirection.Right ? -1 : 1) * scaleX);
-            GrubberFlyBeam.transform.SetScaleY(scaleY);
-            
-            // ReSharper disable once SwitchStatementMissingSomeCases
-            switch (recoil)
-            {
-                case true:
-                    recoils = Recoils.Long;
-                    break;
-                case false:
-                    recoils = Recoils.Normal;
-                    break;
-            }
-
-            if (recoils != Recoils.None)
-            {
-                Recoil(dir, recoils == Recoils.Long);
-            }
-        }
-        #endregion
-
-        public override string GetVersion() => "v1.03";
-
         private void CreateCanvas()
         {
             if (_canvas != null) return;
@@ -314,58 +149,26 @@ namespace Lightbringer
             _canvas = CanvasUtil.CreateCanvas(RenderMode.ScreenSpaceOverlay, new Vector2(1920, 1080));
             Object.DontDestroyOnLoad(_canvas);
             GameObject gameObject = CanvasUtil.CreateTextPanel(_canvas, "", 27, TextAnchor.MiddleCenter,
-                new CanvasUtil.RectData(
-                    new Vector2(0, 50),
-                    new Vector2(0, 45),
-                    new Vector2(0, 0),
-                    new Vector2(1, 0),
-                    new Vector2(0.5f, 0.5f)));
+                                                               new CanvasUtil.RectData(
+                                                                   new Vector2(0, 50),
+                                                                   new Vector2(0, 45),
+                                                                   new Vector2(0, 0),
+                                                                   new Vector2(1, 0),
+                                                                   new Vector2(0.5f, 0.5f)));
             _textObj = gameObject.GetComponent<Text>();
             _textObj.font = CanvasUtil.TrajanBold;
             _textObj.text = "";
             _textObj.fontSize = 42;
         }
 
-        // Tiny Shell fixes
-        private static void FaceLeft(On.HeroController.orig_FaceLeft orig, HeroController self)
-        {
-            self.cState.facingRight = false;
-            Vector3 localScale = self.transform.localScale;
-            localScale.x = self.playerData.equippedCharm_4 ? 0.75f : 1f;
-            self.transform.localScale = localScale;
-        }
-
-        private static void FaceRight(On.HeroController.orig_FaceRight orig, HeroController self)
-        {
-            self.cState.facingRight = true;
-            Vector3 localScale = self.transform.localScale;
-            localScale.x = self.playerData.equippedCharm_4 ? -0.75f : -1f;
-            self.transform.localScale = localScale;
-        }
-
-        public override void Initialize()
-        {
-            Instance = this;
-            try
-            {
-                RegisterCallbacks();
-            }
-            catch
-            {
-                CreateCanvas();
-                _textObj.text = "Lightbringer requires ModCommon to function! Install it!";
-                _textObj.CrossFadeAlpha(1f, 0f, false);
-            }
-        }
-
         private void RegisterCallbacks()
         {
             // Tiny Shell fixes
-            On.HeroController.FaceLeft += FaceLeft;
-            On.HeroController.FaceRight += FaceRight;
+            On.HeroController.FaceLeft += TinyShell.FaceLeft;
+            On.HeroController.FaceRight += TinyShell.FaceRight;
 
             // Stun Resistance
-            On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare += DoIntCompare;
+            IntCompare.DoIntCompare += DoIntCompare;
 
             // Sprites!
             On.ShopItemStats.Awake += Awake;
@@ -428,7 +231,7 @@ namespace Lightbringer
 
             _asm = Assembly.GetExecutingAssembly();
             Sprites = new Dictionary<string, Sprite>();
-            
+
             Stopwatch overall = Stopwatch.StartNew();
             foreach (string res in _asm.GetManifestResourceNames())
             {
@@ -450,7 +253,7 @@ namespace Lightbringer
                     var tex = new Texture2D(2, 2);
 
                     tex.LoadImage(buffer, true);
-                    
+
                     // Create sprite from texture 
                     // Substring is to cut off the Lightbringer. and the .png 
                     Sprites.Add(res.Substring(23, res.Length - 27), Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)));
@@ -458,11 +261,12 @@ namespace Lightbringer
                     Log("Created sprite from embedded image: " + res);
                 }
             }
+
             Log("Finished loading all images in " + overall.ElapsedMilliseconds + "ms");
         }
 
         // It should take more hits to stun bosses 
-        private static void DoIntCompare(On.HutongGames.PlayMaker.Actions.IntCompare.orig_DoIntCompare orig, IntCompare self)
+        private static void DoIntCompare(IntCompare.orig_DoIntCompare orig, HutongGames.PlayMaker.Actions.IntCompare self)
         {
             if (self.integer2.Name.StartsWith("Stun"))
             {
@@ -480,34 +284,6 @@ namespace Lightbringer
         {
             PlayerData.instance.maxHealthBase = PlayerData.instance.maxHealth = PlayerData.instance.health = 4;
             PlayerData.instance.charmSlots += 1;
-        }
-
-        public void Unload()
-        {
-            On.HeroController.FaceLeft -= FaceLeft;
-            On.HeroController.FaceRight -= FaceRight;
-            On.HutongGames.PlayMaker.Actions.IntCompare.DoIntCompare -= DoIntCompare;
-            On.ShopItemStats.Awake -= Awake;
-            On.HeroController.Attack -= Attack;
-            On.PlayerData.AddGeo -= AddGeo;
-            On.NailSlash.StartSlash -= StartSlash;
-            ModHooks.Instance.BeforeSavegameSaveHook -= BeforeSaveGameSave;
-            ModHooks.Instance.AfterSavegameLoadHook -= AfterSaveGameLoad;
-            ModHooks.Instance.SavegameSaveHook -= SaveGameSave;
-            ModHooks.Instance.NewGameHook -= OnNewGame;
-            ModHooks.Instance.TakeHealthHook -= Health;
-            ModHooks.Instance.DoAttackHook -= DoAttack;
-            ModHooks.Instance.AfterAttackHook -= AfterAttack;
-            ModHooks.Instance.TakeHealthHook -= TakeHealth;
-            ModHooks.Instance.SoulGainHook -= SoulGain;
-            ModHooks.Instance.HeroUpdateHook -= Update;
-            ModHooks.Instance.CharmUpdateHook -= CharmUpdate;
-            ModHooks.Instance.LanguageGetHook -= LangGet;
-            ModHooks.Instance.BlueHealthHook -= BlueHealth;
-            USceneManager.sceneLoaded -= SceneLoadedHook;
-
-            if (PlayerData.instance != null)
-                BeforeSaveGameSave();
         }
 
 
@@ -531,41 +307,46 @@ namespace Lightbringer
 
         private IEnumerator ChangeSprites()
         {
-            while (CharmIconList.Instance == null ||
-                   GameManager.instance == null ||
-                   HeroController.instance == null ||
-                   HeroController.instance.geoCounter == null ||
+            while (CharmIconList.Instance                       == null ||
+                   GameManager.instance                         == null ||
+                   HeroController.instance                      == null ||
+                   HeroController.instance.geoCounter           == null ||
                    HeroController.instance.geoCounter.geoSprite == null ||
-                   Sprites.Count < 22)
-            {
+                   Sprites.Count                                < 22)
                 yield return null;
-            }
 
-            foreach (int i in new int[] {2, 3, 4, 6, 8, 13, 14, 15, 18, 19, 20, 21, 25, 26, 35})
-            {
-                CharmIconList.Instance.spriteList[i] = Sprites["Charms." + i];
-            }
+            foreach (int i in new int[] {2, 3, 4, 6, 8, 13, 14, 15, 18, 19, 20, 21, 25, 26, 35}) CharmIconList.Instance.spriteList[i] = Sprites["Charms." + i];
 
-            HeroController.instance.geoCounter.geoSprite.GetComponent<tk2dSprite>().GetCurrentSpriteDef()
-                .material.mainTexture = Sprites["UI"].texture;
+            HeroController.instance.geoCounter.geoSprite.GetComponent<tk2dSprite>()
+                          .GetCurrentSpriteDef()
+                          .material.mainTexture = Sprites["UI"].texture;
 
             CharmIconList.Instance.unbreakableStrength = Sprites["Charms.ustr"];
 
             GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("25")
-                .LocateMyFSM("charm_show_if_collected").GetAction<SetSpriteRendererSprite>("Glass Attack", 2).sprite
-                .Value = Sprites["Charms.brokestr"];
+                       .LocateMyFSM("charm_show_if_collected")
+                       .GetAction<SetSpriteRendererSprite>("Glass Attack", 2)
+                       .sprite
+                       .Value = Sprites["Charms.brokestr"];
 
-            HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
-                .mainTexture = Sprites["Lances"].texture;
+            HeroController.instance.grubberFlyBeamPrefabL.GetComponent<tk2dSprite>()
+                          .GetCurrentSpriteDef()
+                          .material
+                          .mainTexture = Sprites["Lances"].texture;
 
-            HeroController.instance.gameObject.GetComponent<tk2dSprite>().GetCurrentSpriteDef().material
-                .mainTexture = Sprites["Knight"].texture;
+            HeroController.instance.gameObject.GetComponent<tk2dSprite>()
+                          .GetCurrentSpriteDef()
+                          .material
+                          .mainTexture = Sprites["Knight"].texture;
 
-            HeroController.instance.gameObject.GetComponent<tk2dSpriteAnimator>().GetClipByName("Sprint").
-               frames[0].spriteCollection.spriteDefinitions[0].material.mainTexture = Sprites["Sprint"].texture;
+            HeroController.instance.gameObject.GetComponent<tk2dSpriteAnimator>()
+                          .GetClipByName("Sprint")
+                          .frames[0]
+                          .spriteCollection.spriteDefinitions[0]
+                          .material.mainTexture = Sprites["Sprint"].texture;
 
             var invNailSprite = GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("Nail")
-                .GetComponent<InvNailSprite>();
+                                           .GetComponent<InvNailSprite>();
 
             invNailSprite.level1 = Sprites["LanceInv"];
             invNailSprite.level2 = Sprites["LanceInv"];
@@ -583,10 +364,10 @@ namespace Lightbringer
             PlayerData.instance.charmCost_19 = 4; // Eye of the Storm update patch
             PlayerData.instance.charmCost_15 = 3; // Bloodlust update patch
             PlayerData.instance.charmCost_14 = 2; // Glass Soul update patch
-            PlayerData.instance.charmCost_8 = 3; // Rising Light update patch
+            PlayerData.instance.charmCost_8 = 3;  // Rising Light update patch
             PlayerData.instance.charmCost_35 = 5; // Radiant Jewel update patch
             PlayerData.instance.charmCost_18 = 3; // Silent Divide update patch
-            PlayerData.instance.charmCost_3 = 2; // Bloodsong update patch
+            PlayerData.instance.charmCost_3 = 2;  // Bloodsong update patch
             PlayerData.instance.charmCost_38 = 2; // Dreamshield update patch
         }
 
@@ -605,23 +386,19 @@ namespace Lightbringer
             PlayerData.instance.nailDamage = PlayerData.instance.nailSmithUpgrades * 4 + 5;
         }
 
-        private const float ORIG_RUN_SPEED = 8.3f;
-        private const float ORIG_RUN_SPEED_CH = 12f;
-        private const float ORIG_RUN_SPEED_CH_COMBO = 13.5f;
-
         private static int Health(int amount)
         {
             float panicSpeed = 1f;
-            
+
             HeroController hc = HeroController.instance;
-            
+
             if (PlayerData.instance.equippedCharm_2)
             {
                 int missingHealth = PlayerData.instance.maxHealth -
                                     PlayerData.instance.health;
-                panicSpeed += missingHealth * .03f;
-                hc.RUN_SPEED = ORIG_RUN_SPEED * panicSpeed;
-                hc.RUN_SPEED_CH = ORIG_RUN_SPEED_CH * panicSpeed;
+                panicSpeed += missingHealth                     * .03f;
+                hc.RUN_SPEED = ORIG_RUN_SPEED                   * panicSpeed;
+                hc.RUN_SPEED_CH = ORIG_RUN_SPEED_CH             * panicSpeed;
                 hc.RUN_SPEED_CH_COMBO = ORIG_RUN_SPEED_CH_COMBO * panicSpeed;
             }
             else
@@ -634,22 +411,15 @@ namespace Lightbringer
             return amount;
         }
 
-        private float _origNailTerrainCheckTime;
-
         private void DoAttack()
         {
-            if (_origNailTerrainCheckTime == 0)
-            {
-                _origNailTerrainCheckTime = HeroController.instance.GetAttr<float>("NAIL_TERRAIN_CHECK_TIME");
-            }
+            if (_origNailTerrainCheckTime == 0) _origNailTerrainCheckTime = HeroController.instance.GetAttr<float>("NAIL_TERRAIN_CHECK_TIME");
 
             if (!(HeroController.instance.vertical_input < Mathf.Epsilon) &&
-                !(HeroController.instance.vertical_input < -Mathf.Epsilon &&
-                  HeroController.instance.hero_state != ActorStates.idle &&
-                  HeroController.instance.hero_state != ActorStates.running))
-            {
+                !(HeroController.instance.vertical_input < -Mathf.Epsilon    &&
+                  HeroController.instance.hero_state     != ActorStates.idle &&
+                  HeroController.instance.hero_state     != ActorStates.running))
                 HeroController.instance.SetAttr("NAIL_TERRAIN_CHECK_TIME", 0f);
-            }
         }
 
         private void AfterAttack(AttackDirection dir)
@@ -672,13 +442,13 @@ namespace Lightbringer
         {
             // Don't let Faulty Wallet hurt people with full SOUL
             if (PlayerData.instance.equippedCharm_21 &&
-                (PlayerData.instance.MPCharge < PlayerData.instance.maxMP ||
+                (PlayerData.instance.MPCharge  < PlayerData.instance.maxMP ||
                  PlayerData.instance.MPReserve != PlayerData.instance.MPReserveMax))
             {
-                int lostGeo = (PlayerData.instance.maxMP - 1 - PlayerData.instance.MPCharge) / 3 +
+                int lostGeo = (PlayerData.instance.maxMP - 1    - PlayerData.instance.MPCharge)  / 3 +
                               (PlayerData.instance.MPReserveMax - PlayerData.instance.MPReserve) / 3 + 1;
                 PlayerData.instance.AddMPCharge(lostGeo > amount ? amount * 3 : lostGeo * 3);
-                orig(self, lostGeo > amount ? 0 : amount - lostGeo);
+                orig(self, lostGeo                      > amount ? 0 : amount - lostGeo);
             }
             else
             {
@@ -710,16 +480,11 @@ namespace Lightbringer
             pd.beamDamage = 3 + pd.nailSmithUpgrades * 3;
 
             // Radiant Jewel (Elegy)
-            if (pd.equippedCharm_35)
-            {
-                pd.beamDamage += 5;
-            }
+            if (pd.equippedCharm_35) pd.beamDamage += 5;
 
             // Fragile Nightmare damage will be factored in only when firing lances
             if (pd.equippedCharm_6) // Glass Soul charm replacing Fury of Fallen
-            {
                 pd.beamDamage += pd.health + pd.healthBlue - 3;
-            }
 
             #endregion
 
@@ -747,8 +512,8 @@ namespace Lightbringer
 
             // QUICK SLASH CHARM #REEE32
             self.SetAttr("attackDuration", pd.equippedCharm_32
-                ? self.ATTACK_DURATION_CH
-                : self.ATTACK_DURATION);
+                             ? self.ATTACK_DURATION_CH
+                             : self.ATTACK_DURATION);
 
             // Fragile Nightmare damage calculations
             if (pd.equippedCharm_25 &&
@@ -758,10 +523,7 @@ namespace Lightbringer
                 self.TakeMP(7);
             }
 
-            if (pd.equippedCharm_38)
-            {
-                self.fsm_orbitShield.SendEvent("SLASH");
-            }
+            if (pd.equippedCharm_38) self.fsm_orbitShield.SendEvent("SLASH");
 
             if (self.cState.wallSliding)
             {
@@ -802,10 +564,7 @@ namespace Lightbringer
                     {
                         if (pd.MPCharge > 10)
                         {
-                            if (!crit)
-                            {
-                                self.TakeMP(10);
-                            }
+                            if (!crit) self.TakeMP(10);
 
                             self.spell1Prefab.Spawn(
                                 self.transform.position +
@@ -836,14 +595,10 @@ namespace Lightbringer
                             bool longnail = pd.equippedCharm_18;
 
                             if (self.cState.facingRight || longnail)
-                            {
                                 SpawnBeams(BeamDirection.Right, 1.5f, 1.5f, crit, positionY: tShell ? new[] {.2f, .7f} : new[] {0f, .9f});
-                            }
 
                             if (!self.cState.facingRight || longnail)
-                            {
                                 SpawnBeams(BeamDirection.Left, 1.5f, 1.5f, crit, positionY: tShell ? new[] {.2f, .7f} : new[] {0f, .9f});
-                            }
                         }
                         // Longnail
                         else if (pd.equippedCharm_18)
@@ -916,7 +671,8 @@ namespace Lightbringer
                     self.SetAttr("slashComponent", self.upSlash);
                     self.SetAttr("slashFsm", self.upSlashFsm);
                     self.cState.upAttacking = true;
-                    self.GetAttr<PlayMakerFSM>("slashFsm").FsmVariables.GetFsmFloat("direction")
+                    self.GetAttr<PlayMakerFSM>("slashFsm")
+                        .FsmVariables.GetFsmFloat("direction")
                         .Value = 90f;
                     self.GetAttr<NailSlash>("slashComponent").StartSlash();
                     break;
@@ -943,7 +699,7 @@ namespace Lightbringer
         private void CharmUpdate(PlayerData pd, HeroController self)
         {
             HeroController hc = HeroController.instance;
-            
+
             // Charm Costs
             SaveGameSave();
 
@@ -986,9 +742,6 @@ namespace Lightbringer
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
         }
 
-        private Text _textObj;
-        private GameObject _canvas;
-
         private void SceneLoadedHook(Scene arg0, LoadSceneMode lsm)
         {
             // Without this your shade doesn't go away when you die.
@@ -1003,10 +756,7 @@ namespace Lightbringer
 
             // Stop flickering soul orb
             FsmEvent a = GameManager.instance.soulOrb_fsm.FsmEvents.FirstOrDefault(x => x.Name == "MP GAIN");
-            if (a != null)
-            {
-                a.Name = "no";
-            }
+            if (a != null) a.Name = "no";
 
             GameManager.instance.StartCoroutine(ChangeSprites());
 
@@ -1018,17 +768,11 @@ namespace Lightbringer
             PlayerData.instance.CountGameCompletion();
 
             if (PlayerData.instance.completionPercentage > 80)
-            {
                 _textObj.text = "You are ready. Empress Muzznik awaits you.";
-            }
             else if (PlayerData.instance.completionPercentage > 60)
-            {
                 _textObj.text = "You might just stand a chance...";
-            }
             else
-            {
                 _textObj.text = "You are unworthy. Come back when you are stronger.";
-            }
 
             _textObj.CrossFadeAlpha(1f, 0f, false);
             _textObj.CrossFadeAlpha(0f, 7f, false);
@@ -1048,9 +792,9 @@ namespace Lightbringer
         private static void StartSlash(On.NailSlash.orig_StartSlash orig, NailSlash self)
         {
             orig(self);
-            PlayMakerFSM slashFsm = self.GetAttr<PlayMakerFSM>("slashFsm");
+            var slashFsm = self.GetAttr<PlayMakerFSM>("slashFsm");
             float slashAngle = slashFsm.FsmVariables.FindFsmFloat("direction").Value;
-            tk2dSpriteAnimator anim = self.GetAttr<tk2dSpriteAnimator>("anim");
+            var anim = self.GetAttr<tk2dSpriteAnimator>("anim");
             if (slashAngle == 0f || slashAngle == 180f)
             {
                 self.transform.localScale = new Vector3(self.scale.x * 0.32f, self.scale.y * 0.32f, self.scale.z);
@@ -1070,10 +814,7 @@ namespace Lightbringer
                 anim.Play(self.animName);
             }
 
-            if (self.GetAttr<bool>("fury"))
-            {
-                anim.Play(self.animName + " F");
-            }
+            if (self.GetAttr<bool>("fury")) anim.Play(self.animName + " F");
         }
 
         private static int TakeHealth(int amount)
@@ -1095,28 +836,20 @@ namespace Lightbringer
 
             if (_timefracture > .99f && PlayerData.instance.equippedCharm_14 &&
                 !HeroController.instance.cState.isPaused)
-            {
                 Time.timeScale = _timefracture;
-            }
 
             // Double Kin
             if (_kin == null && (PlayerData.instance.geo == 753 || PlayerData.instance.geo == 56))
             {
                 _kin = GameObject.Find("Lost Kin");
-                if (_kin != null)
-                {
-                    _kin.AddComponent<DoubleKin>();
-                }
+                if (_kin != null) _kin.AddComponent<DoubleKin>();
             }
 
             // EMPRESS MUZZNIK BOSS FIGHT
             if (_gruz == null)
             {
                 _gruz = GameObject.Find("Giant Fly");
-                if (_gruz != null && GameManager.instance.GetSceneNameString() == "Crossroads_04")
-                {
-                    _gruz.AddComponent<Muzznik>();
-                }
+                if (_gruz != null && GameManager.instance.GetSceneNameString() == "Crossroads_04") _gruz.AddComponent<Muzznik>();
             }
 
             _manaRegenTime += Time.deltaTime * Time.timeScale;
@@ -1130,9 +863,7 @@ namespace Lightbringer
                     //if (PlayerData.instance.GetBool("equippedCharm_" + i) &&
                     if (PlayerData.instance.GetAttr<bool>("equippedCharm_" + i) &&
                         (i != 25 || !PlayerData.instance.brokenCharm_25))
-                    {
                         HeroController.instance.AddMPChargeSpa(1);
-                    }
                 }
 
                 switch (PlayerData.instance.geo)
@@ -1183,7 +914,174 @@ namespace Lightbringer
 
             float num2 = (_passionDirection ? -1 : 1) * new Random().Next(3, 12);
             SpawnBeam(_passionDirection ? BeamDirection.Right : BeamDirection.Left, 1f, 1f, positionX: num2,
-                positionY: -0.5f + num2 / 6f);
+                      positionY: -0.5f + num2 / 6f);
         }
+
+        private enum Recoils
+        {
+            None,
+            Normal,
+            Long
+        }
+
+        // Down isn't here cause elegy doesn't have it
+        private enum BeamDirection
+        {
+            Up,
+            Down,
+            Right,
+            Left
+        }
+
+        #region SpawnBeam
+
+        private void SpawnBeams
+        (
+            bool         dir,
+            float        scaleX,
+            float        scaleY,
+            bool         critical      = false,
+            float?       positionX     = null,
+            IList<float> positionY     = null,
+            bool         offset        = true,
+            bool         rightNegative = true,
+            bool?        recoil        = null,
+            Recoils      recoils       = Recoils.Long
+        )
+        {
+            SpawnBeams(dir ? BeamDirection.Right : BeamDirection.Left, scaleX, scaleY, critical, positionX, positionY, offset, rightNegative, recoil, recoils);
+        }
+
+        private void SpawnBeams
+        (
+            BeamDirection dir,
+            float         scaleX,
+            float         scaleY,
+            bool          critical      = false,
+            float?        positionX     = null,
+            IList<float>  positionY     = null,
+            bool          offset        = true,
+            bool          rightNegative = true,
+            bool?         recoil        = null,
+            Recoils       recoils       = Recoils.Long
+        )
+        {
+            SpawnBeam(dir, scaleX, scaleY, critical, positionX, positionY?[0], offset, rightNegative, recoil, recoils);
+            SpawnBeam(dir, scaleX, scaleY, critical, positionX, positionY?[1], offset, rightNegative, recoil, recoils);
+        }
+
+        private void SpawnBeams
+        (
+            float   scaleX,
+            float   scaleY,
+            bool    critical      = false,
+            float?  positionX     = null,
+            object  positionY     = null,
+            bool    offset        = true,
+            bool    rightNegative = true,
+            bool?   recoil        = null,
+            Recoils recoils       = Recoils.None
+        )
+        {
+            switch (positionY)
+            {
+                case float posY:
+                    SpawnBeam(BeamDirection.Left, scaleX, scaleY, critical, positionX, posY, offset, rightNegative, recoil, recoils);
+                    SpawnBeam(BeamDirection.Right, scaleX, scaleY, critical, positionX, posY, offset, rightNegative, recoil, recoils);
+                    break;
+                case float[] posYs:
+                    foreach (float y in posYs)
+                    {
+                        SpawnBeams(scaleX, scaleY, critical, positionX, y, offset, rightNegative, recoil, recoils);
+                        SpawnBeams(scaleX, scaleY, critical, positionX, y, offset, rightNegative, recoil, recoils);
+                    }
+
+                    break;
+                case null:
+                    SpawnBeam(BeamDirection.Left, scaleX, scaleY, critical, positionX, null, offset, rightNegative, recoil, recoils);
+                    SpawnBeam(BeamDirection.Right, scaleX, scaleY, critical, positionX, null, offset, rightNegative, recoil, recoils);
+                    break;
+            }
+        }
+
+        private void SpawnBeam
+        (
+            bool    dir,
+            float   scaleX,
+            float   scaleY,
+            bool    critical      = false,
+            float?  positionX     = null,
+            float?  positionY     = null,
+            bool    offset        = true,
+            bool    rightNegative = true,
+            bool?   recoil        = null,
+            Recoils recoils       = Recoils.None
+        )
+        {
+            SpawnBeam(dir ? BeamDirection.Right : BeamDirection.Left, scaleX, scaleY, critical, positionX, positionY, offset, rightNegative, recoil, recoils);
+        }
+
+        private void SpawnBeam
+        (
+            BeamDirection dir,
+            float         scaleX,
+            float         scaleY,
+            bool          critical      = false,
+            float?        positionX     = null,
+            float?        positionY     = null,
+            bool          offset        = true,
+            bool          rightNegative = true,
+            bool?         recoil        = null,
+            Recoils       recoils       = Recoils.None
+        )
+        {
+            string beamPrefab = "grubberFlyBeamPrefab";
+            switch (dir)
+            {
+                case BeamDirection.Up:
+                    beamPrefab += "U";
+                    break;
+                case BeamDirection.Down:
+                    beamPrefab += "D";
+                    break;
+                case BeamDirection.Right:
+                    beamPrefab += "R";
+                    break;
+                case BeamDirection.Left:
+                    beamPrefab += "L";
+                    break;
+                default: throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
+            }
+
+            beamPrefab += critical ? "_fury" : "";
+
+            HeroController hc = HeroController.instance;
+
+            GrubberFlyBeam = hc.GetAttr<GameObject>(beamPrefab).Spawn(hc.transform.position);
+            Transform t = hc.transform;
+
+            if (positionX != null)
+                GrubberFlyBeam.transform.SetPositionX((float) (positionX + (offset ? t.GetPositionX() : 0)));
+            if (positionY != null)
+                GrubberFlyBeam.transform.SetPositionY((float) (positionY + (offset ? t.GetPositionY() : 0)));
+
+            GrubberFlyBeam.transform.SetScaleX((rightNegative && dir == BeamDirection.Right ? -1 : 1) * scaleX);
+            GrubberFlyBeam.transform.SetScaleY(scaleY);
+
+            // ReSharper disable once SwitchStatementMissingSomeCases
+            switch (recoil)
+            {
+                case true:
+                    recoils = Recoils.Long;
+                    break;
+                case false:
+                    recoils = Recoils.Normal;
+                    break;
+            }
+
+            if (recoils != Recoils.None) Recoil(dir, recoils == Recoils.Long);
+        }
+
+        #endregion
     }
 }

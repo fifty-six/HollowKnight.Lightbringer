@@ -9,9 +9,9 @@
         <OutputPath>bin\$(Configuration)\</OutputPath>
     </PropertyGroup>
     <ItemGroup>
-        <Reference Include="System.Data.DataSetExtensions"/>
-        <Reference Include="Microsoft.CSharp"/>
-        <Reference Include="System.Net.Http"/>
+        <Reference Include="System.Data.DataSetExtensions" />
+        <Reference Include="Microsoft.CSharp" />
+        <Reference Include="System.Net.Http" />
        
         <Reference Include="Assembly-CSharp">
             <HintPath>..\..\..\References\Assembly-CSharp.dll</HintPath>
@@ -48,33 +48,33 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource Include="Resources\Charms\2.png"/>
-        <EmbeddedResource Include="Resources\Charms\3.png"/>
-        <EmbeddedResource Include="Resources\Charms\4.png"/>
-        <EmbeddedResource Include="Resources\Charms\6.png"/>
-        <EmbeddedResource Include="Resources\Charms\8.png"/>
-        <EmbeddedResource Include="Resources\Charms\13.png"/>
-        <EmbeddedResource Include="Resources\Charms\14.png"/>
-        <EmbeddedResource Include="Resources\Charms\15.png"/>
-        <EmbeddedResource Include="Resources\Charms\18.png"/>
-        <EmbeddedResource Include="Resources\Charms\19.png"/>
-        <EmbeddedResource Include="Resources\Charms\20.png"/>
-        <EmbeddedResource Include="Resources\Charms\21.png"/>
-        <EmbeddedResource Include="Resources\Charms\25.png"/>
-        <EmbeddedResource Include="Resources\Charms\26.png"/>
-        <EmbeddedResource Include="Resources\Charms\35.png"/>
-        <EmbeddedResource Include="Resources\Charms\brokestr.png"/>
-        <EmbeddedResource Include="Resources\Charms\ustr.png"/>
-        <EmbeddedResource Include="Resources\Muzznik.png"/>
-        <EmbeddedResource Include="Resources\Lances.png"/>
-        <EmbeddedResource Include="Resources\LanceInv.png"/>
-        <EmbeddedResource Include="Resources\Knight.png"/>
-        <EmbeddedResource Include="Resources\Sprint.png"/>
-        <EmbeddedResource Include="Resources\UI.png"/>
+        <EmbeddedResource Include="Resources\Charms\2.png" />
+        <EmbeddedResource Include="Resources\Charms\3.png" />
+        <EmbeddedResource Include="Resources\Charms\4.png" />
+        <EmbeddedResource Include="Resources\Charms\6.png" />
+        <EmbeddedResource Include="Resources\Charms\8.png" />
+        <EmbeddedResource Include="Resources\Charms\13.png" />
+        <EmbeddedResource Include="Resources\Charms\14.png" />
+        <EmbeddedResource Include="Resources\Charms\15.png" />
+        <EmbeddedResource Include="Resources\Charms\18.png" />
+        <EmbeddedResource Include="Resources\Charms\19.png" />
+        <EmbeddedResource Include="Resources\Charms\20.png" />
+        <EmbeddedResource Include="Resources\Charms\21.png" />
+        <EmbeddedResource Include="Resources\Charms\25.png" />
+        <EmbeddedResource Include="Resources\Charms\26.png" />
+        <EmbeddedResource Include="Resources\Charms\35.png" />
+        <EmbeddedResource Include="Resources\Charms\brokestr.png" />
+        <EmbeddedResource Include="Resources\Charms\ustr.png" />
+        <EmbeddedResource Include="Resources\Muzznik.png" />
+        <EmbeddedResource Include="Resources\Lances.png" />
+        <EmbeddedResource Include="Resources\LanceInv.png" />
+        <EmbeddedResource Include="Resources\Knight.png" />
+        <EmbeddedResource Include="Resources\Sprint.png" />
+        <EmbeddedResource Include="Resources\UI.png" />
     </ItemGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="@echo on"/>
-        <Exec Command="echo Copying mod"/>
-        <Exec Command='copy "$(TargetPath)" "D:\Steam\steamapps\common\Hollow Knight\hollow_knight_Data\Managed\Mods\"'/>
+        <Exec Command="@echo on" />
+        <Exec Command="echo Copying mod" />
+        <Exec Command="copy &quot;$(TargetPath)&quot; &quot;D:\Steam\steamapps\common\Hollow Knight\hollow_knight_Data\Managed\Mods\&quot;" />
     </Target>
 </Project>

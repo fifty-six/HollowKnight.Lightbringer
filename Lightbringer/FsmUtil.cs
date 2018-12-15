@@ -12,20 +12,6 @@ namespace Lightbringer
 {
     internal static class FsmUtil
     {
-        // ReSharper disable once MemberCanBePrivate.Global
-        // ReSharper disable once UnusedMethodReturnValue.Global
-        public static T[] RemoveAt<T>(this T[] source, int index)
-        {
-            T[] dest = new T[source.Length - 1];
-            if (index > 0)
-                Array.Copy(source, 0, dest, 0, index);
-
-            if (index < source.Length - 1)
-                Array.Copy(source, index + 1, dest, index, source.Length - index - 1);
-
-            return dest;
-        }
-
         // ReSharper disable once InconsistentNaming
         private static readonly FieldInfo FsmStringParamsField;
 
@@ -38,6 +24,20 @@ namespace Lightbringer
                 FsmStringParamsField = t;
                 break;
             }
+        }
+
+        // ReSharper disable once MemberCanBePrivate.Global
+        // ReSharper disable once UnusedMethodReturnValue.Global
+        public static T[] RemoveAt<T>(this T[] source, int index)
+        {
+            T[] dest = new T[source.Length - 1];
+            if (index > 0)
+                Array.Copy(source, 0, dest, 0, index);
+
+            if (index < source.Length - 1)
+                Array.Copy(source, index + 1, dest, index, source.Length - index - 1);
+
+            return dest;
         }
 
         public static void RemoveAction(PlayMakerFSM fsm, string stateName, int index)
@@ -63,13 +63,13 @@ namespace Lightbringer
 
         public static FsmState CopyState(PlayMakerFSM fsm, string stateName, string newState)
         {
-            FsmState state = new FsmState(fsm.GetState(stateName));
+            var state = new FsmState(fsm.GetState(stateName));
             state.Name = newState;
-            
+
             List<FsmState> fsmStates = fsm.FsmStates.ToList();
             fsmStates.Add(state);
             fsm.Fsm.States = fsmStates.ToArray();
-            
+
             return state;
         }
 
@@ -118,7 +118,7 @@ namespace Lightbringer
                 t.Actions = actions;
             }
         }
-        
+
         public static void ChangeTransition(PlayMakerFSM fsm, string stateName, string eventName, string toState)
         {
             foreach (FsmState t in fsm.FsmStates)
@@ -126,14 +126,11 @@ namespace Lightbringer
                 if (t.Name != stateName) continue;
                 foreach (FsmTransition trans in t.Transitions)
                 {
-                    if (trans.EventName == eventName)
-                    {
-                        trans.ToState = toState;
-                    }
+                    if (trans.EventName == eventName) trans.ToState = toState;
                 }
             }
         }
-        
+
         public static void AddTransition(PlayMakerFSM fsm, string stateName, string eventName, string toState)
         {
             foreach (FsmState t in fsm.FsmStates)
@@ -158,14 +155,11 @@ namespace Lightbringer
                 foreach (FsmTransition trans in t.Transitions)
                 {
                     if (!transitions.Contains(trans.ToState))
-                    {
                         transList.Add(trans);
-                    }
                     else
-                    {
                         Log($"Removing {trans.ToState} transition from {t.Name}");
-                    }
                 }
+
                 t.Transitions = transList.ToArray();
             }
         }
@@ -176,7 +170,7 @@ namespace Lightbringer
             {
                 bool found = false;
                 if (!states.Contains(t.Name)) continue;
-                foreach (FsmString str in (List<FsmString>)FsmStringParamsField.GetValue(t.ActionData))
+                foreach (FsmString str in (List<FsmString>) FsmStringParamsField.GetValue(t.ActionData))
                 {
                     List<FsmString> val = new List<FsmString>();
                     if (dict.ContainsKey(str.Value))
@@ -189,15 +183,10 @@ namespace Lightbringer
                         val.Add(str);
                     }
 
-                    if (val.Count > 0)
-                    {
-                        FsmStringParamsField.SetValue(t.ActionData, val);
-                    }
+                    if (val.Count > 0) FsmStringParamsField.SetValue(t.ActionData, val);
                 }
-                if (found)
-                {
-                    t.LoadActions();
-                }
+
+                if (found) t.LoadActions();
             }
         }
 
@@ -207,7 +196,7 @@ namespace Lightbringer
             {
                 bool found = false;
                 if (t.Name != state && state != "") continue;
-                foreach (FsmString str in (List<FsmString>)FsmStringParamsField.GetValue(t.ActionData))
+                foreach (FsmString str in (List<FsmString>) FsmStringParamsField.GetValue(t.ActionData))
                 {
                     List<FsmString> val = new List<FsmString>();
                     if (dict.ContainsKey(str.Value))
@@ -220,15 +209,10 @@ namespace Lightbringer
                         val.Add(str);
                     }
 
-                    if (val.Count > 0)
-                    {
-                        FsmStringParamsField.SetValue(t.ActionData, val);
-                    }
+                    if (val.Count > 0) FsmStringParamsField.SetValue(t.ActionData, val);
                 }
-                if (found)
-                {
-                    t.LoadActions();
-                }
+
+                if (found) t.LoadActions();
             }
         }
 
@@ -240,7 +224,7 @@ namespace Lightbringer
                 bool found = false;
                 if (t.Name != state && state != "") continue;
                 Log($"Found FsmState with name \"{t.Name}\" ");
-                foreach (FsmString str in (List<FsmString>)FsmStringParamsField.GetValue(t.ActionData))
+                foreach (FsmString str in (List<FsmString>) FsmStringParamsField.GetValue(t.ActionData))
                 {
                     List<FsmString> val = new List<FsmString>();
                     Log($"Found FsmString with value \"{str}\" ");
@@ -255,15 +239,10 @@ namespace Lightbringer
                         val.Add(str);
                     }
 
-                    if (val.Count > 0)
-                    {
-                        FsmStringParamsField.SetValue(t.ActionData, val);
-                    }
+                    if (val.Count > 0) FsmStringParamsField.SetValue(t.ActionData, val);
                 }
-                if (found)
-                {
-                    t.LoadActions();
-                }
+
+                if (found) t.LoadActions();
             }
         }
 
@@ -279,28 +258,64 @@ namespace Lightbringer
 
     public static class FsmutilExt
     {
-        public static void RemoveAction(this PlayMakerFSM fsm, string stateName, int index) => FsmUtil.RemoveAction(fsm, stateName, index);
+        public static void RemoveAction(this PlayMakerFSM fsm, string stateName, int index)
+        {
+            FsmUtil.RemoveAction(fsm, stateName, index);
+        }
 
-        public static FsmState GetState(this PlayMakerFSM fsm, string stateName) => FsmUtil.GetState(fsm, stateName);
+        public static FsmState GetState(this PlayMakerFSM fsm, string stateName)
+        {
+            return FsmUtil.GetState(fsm, stateName);
+        }
 
-        public static FsmStateAction GetAction(this PlayMakerFSM fsm, string stateName, int index) => FsmUtil.GetAction(fsm, stateName, index);
+        public static FsmStateAction GetAction(this PlayMakerFSM fsm, string stateName, int index)
+        {
+            return FsmUtil.GetAction(fsm, stateName, index);
+        }
 
-        public static T GetAction<T>(this PlayMakerFSM fsm, string stateName, int index) where T : FsmStateAction => FsmUtil.GetAction<T>(fsm, stateName, index);
+        public static T GetAction<T>(this PlayMakerFSM fsm, string stateName, int index) where T : FsmStateAction
+        {
+            return FsmUtil.GetAction<T>(fsm, stateName, index);
+        }
 
-        public static FsmState CopyState(this PlayMakerFSM fsm, string stateName, string newState) => FsmUtil.CopyState(fsm, stateName, newState);
+        public static FsmState CopyState(this PlayMakerFSM fsm, string stateName, string newState)
+        {
+            return FsmUtil.CopyState(fsm, stateName, newState);
+        }
 
-        public static void AddAction(this PlayMakerFSM fsm, string stateName, FsmStateAction action) => FsmUtil.AddAction(fsm, stateName, action);
+        public static void AddAction(this PlayMakerFSM fsm, string stateName, FsmStateAction action)
+        {
+            FsmUtil.AddAction(fsm, stateName, action);
+        }
 
-        public static void ChangeTransition(this PlayMakerFSM fsm, string stateName, string eventName, string toState) => FsmUtil.ChangeTransition(fsm, stateName, eventName, toState);
+        public static void ChangeTransition(this PlayMakerFSM fsm, string stateName, string eventName, string toState)
+        {
+            FsmUtil.ChangeTransition(fsm, stateName, eventName, toState);
+        }
 
-        public static void AddTransition(this PlayMakerFSM fsm, string stateName, string eventName, string toState) => FsmUtil.AddTransition(fsm, stateName, eventName, toState);
+        public static void AddTransition(this PlayMakerFSM fsm, string stateName, string eventName, string toState)
+        {
+            FsmUtil.AddTransition(fsm, stateName, eventName, toState);
+        }
 
-        public static void RemoveTransitions(this PlayMakerFSM fsm, List<string> states, List<string> transitions) => FsmUtil.RemoveTransitions(fsm, states, transitions);
+        public static void RemoveTransitions(this PlayMakerFSM fsm, List<string> states, List<string> transitions)
+        {
+            FsmUtil.RemoveTransitions(fsm, states, transitions);
+        }
 
-        public static void ReplaceStringVariable(this PlayMakerFSM fsm, List<string> states, Dictionary<string, string> dict) => FsmUtil.ReplaceStringVariable(fsm, states, dict);
+        public static void ReplaceStringVariable(this PlayMakerFSM fsm, List<string> states, Dictionary<string, string> dict)
+        {
+            FsmUtil.ReplaceStringVariable(fsm, states, dict);
+        }
 
-        public static void ReplaceStringVariable(this PlayMakerFSM fsm, string state, Dictionary<string, string> dict) => FsmUtil.ReplaceStringVariable(fsm, state, dict);
+        public static void ReplaceStringVariable(this PlayMakerFSM fsm, string state, Dictionary<string, string> dict)
+        {
+            FsmUtil.ReplaceStringVariable(fsm, state, dict);
+        }
 
-        public static void ReplaceStringVariable(this PlayMakerFSM fsm, string state, string src, string dst) => FsmUtil.ReplaceStringVariable(fsm, state, src, dst);
+        public static void ReplaceStringVariable(this PlayMakerFSM fsm, string state, string src, string dst)
+        {
+            FsmUtil.ReplaceStringVariable(fsm, state, src, dst);
+        }
     }
 }
