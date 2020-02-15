@@ -56,9 +56,17 @@ namespace Lightbringer
 
         internal static SpriteFlash SpriteFlash { get; } = HeroController.instance.GetAttr<SpriteFlash>("spriteFlash");
 
+        public LightbringerSettings Settings { get; set; } = new LightbringerSettings();
+
+        public override ModSettings GlobalSettings
+        {
+            get => Settings = Settings ?? new LightbringerSettings();
+            set => Settings = value is LightbringerSettings settings ? settings : Settings;
+        }
+
         public override string GetVersion()
         {
-            return "v1.03";
+            return "v1.04";
         }
 
         public override void Initialize()
@@ -74,6 +82,17 @@ namespace Lightbringer
                 _textObj.text = "Lightbringer requires ModCommon to function! Install it!";
                 _textObj.CrossFadeAlpha(1f, 0f, false);
             }
+
+            // Config doesn't auto generate unless you do this
+            Settings.BaseBeamDamage = Settings.BaseBeamDamage;
+            Settings.UpgradeBeamDamage = Settings.UpgradeBeamDamage;
+            Settings.RadiantJewelDamage = Settings.RadiantJewelDamage;
+            Settings.FragileNightmareScaleFactor = Settings.FragileNightmareScaleFactor;
+            Settings.FragileNightmareSoulCost = Settings.FragileNightmareSoulCost;
+            Settings.BaseNailDamage = Settings.BaseNailDamage;
+            Settings.UpgradeNailDamage = Settings.UpgradeNailDamage;
+            Settings.BurningPrideScaleFactor = Settings.BurningPrideScaleFactor;
+            Settings.SoulRegenRate = Settings.SoulRegenRate;
         }
 
         public void Unload()
@@ -468,11 +487,11 @@ namespace Lightbringer
 
 
             // BURNING PRIDE CALCULATIONS
-            pd.nailDamage = 1 + pd.nailSmithUpgrades * 2;
+            pd.nailDamage = Settings.BaseNailDamage + pd.nailSmithUpgrades * Settings.UpgradeNailDamage;
             if (pd.equippedCharm_13) // Mark of Pride
             {
                 pd.CountGameCompletion();
-                pd.nailDamage += (int) pd.completionPercentage / 6;
+                pd.nailDamage += (int) (pd.completionPercentage * Settings.BurningPrideScaleFactor);
             }
 
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
@@ -589,10 +608,10 @@ namespace Lightbringer
             }
 
             _manaRegenTime += Time.deltaTime * Time.timeScale;
-            if (_manaRegenTime >= 1.11f && GameManager.instance.soulOrb_fsm != null)
+            if (_manaRegenTime >= Settings.SoulRegenRate && GameManager.instance.soulOrb_fsm != null)
             {
                 // Mana regen
-                _manaRegenTime -= 1.11f;
+                _manaRegenTime -= Settings.SoulRegenRate;
                 HeroController.instance.AddMPChargeSpa(1);
                 foreach (int i in new int[] {17, 19, 34, 30, 28, 22, 25})
                 {
