@@ -66,11 +66,7 @@ namespace Lightbringer
 
         public override string GetVersion()
         {
-<<<<<<< HEAD
             return "v1.21";
-=======
-            return "v1.04";
->>>>>>> master
         }
 
         public override void Initialize()
@@ -341,16 +337,16 @@ namespace Lightbringer
                           .material
                           .mainTexture = Sprites["Lances"].texture;
 
-            HeroController.instance.gameObject.GetComponent<tk2dSprite>()
-                          .GetCurrentSpriteDef()
-                          .material
-                          .mainTexture = Sprites["Knight"].texture;
+            //HeroController.instance.gameObject.GetComponent<tk2dSprite>()
+            //              .GetCurrentSpriteDef()
+            //              .material
+            //              .mainTexture = Sprites["Knight"].texture;
 
-            HeroController.instance.gameObject.GetComponent<tk2dSpriteAnimator>()
-                          .GetClipByName("Sprint")
-                          .frames[0]
-                          .spriteCollection.spriteDefinitions[0]
-                          .material.mainTexture = Sprites["Sprint"].texture;
+            //HeroController.instance.gameObject.GetComponent<tk2dSpriteAnimator>()
+            //              .GetClipByName("Sprint")
+            //              .frames[0]
+            //              .spriteCollection.spriteDefinitions[0]
+            //              .material.mainTexture = Sprites["Sprint"].texture;
 
             var invNailSprite = GameManager.instance.inventoryFSM.gameObject.FindGameObjectInChildren("Nail")
                                            .GetComponent<InvNailSprite>();
