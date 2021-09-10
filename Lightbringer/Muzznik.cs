@@ -86,15 +86,13 @@ namespace Lightbringer
             else if (!_fight[9] && gruzHp < 1)
             {
                 _fight[9] = true;
-                _minion.GetComponent<HealthManager>().hp = 1;
-                for (int i = 0; i < 12; i++) _minions[i].GetComponent<HealthManager>().hp = 1;
             }
         }
 
         private void OnDestroy()
         {
-            foreach (GameObject go in _minions) Destroy(go);
-            Destroy(_minion);
+            _minion.GetComponent<HealthManager>().hp = 1;
+            for (int i = 0; i < 12; i++) _minions[i].GetComponent<HealthManager>().hp = 1;
         }
     }
 }

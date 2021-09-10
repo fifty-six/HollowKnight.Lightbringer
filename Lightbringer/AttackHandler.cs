@@ -10,25 +10,23 @@ namespace Lightbringer
 {
     public class AttackHandler
     {
+        public static AudioClip BeamAudioClip;
+
         private static GameObject GrubberFlyBeam
         {
             get => HeroController.instance.GetAttr<GameObject>("grubberFlyBeam");
             set => HeroController.instance.SetAttr("grubberFlyBeam", value);
         }
-        
-        private float _timeFracture;
+
         private bool _crit;
 
         public AttackHandler() {}
 
         public AttackHandler(float fracture)
         {
-            _timeFracture = fracture;
         }
 
         private static Random _rand => Lightbringer.Random;
-
-        private static SpriteFlash SpriteFlash => Lightbringer.SpriteFlash;
 
         public void Attack(HeroController hc, AttackDirection dir)
         {
@@ -45,7 +43,7 @@ namespace Lightbringer
             if (pd.equippedCharm_13)
             {
                 pd.CountGameCompletion();
-                pd.nailDamage += (int) pd.completionPercentage / 8;
+                pd.nailDamage += (int) pd.completionPercentage / 9;
             }
 
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
@@ -56,13 +54,20 @@ namespace Lightbringer
             // Radiant Jewel (Elegy)
             if (pd.equippedCharm_35) pd.beamDamage += 5;
 
-            // Fragile Nightmare damage will be factored in only when firing lances
+            // Fragile Nightmare damage calculations
+            if (dir == AttackDirection.normal && pd.equippedCharm_25 &&
+                pd.MPCharge > 3) // Fragile Strength > Fragile Nightmare
+            {
+                pd.beamDamage += pd.MPCharge / 20;
+                hc.TakeMP(7);
+            }
+
             if (pd.equippedCharm_6) // Glass Soul charm replacing Fury of Fallen
                 pd.beamDamage += pd.health + pd.healthBlue - 3;
 
             #endregion
 
-            _crit = CalculateCrit(hc, pd);
+            _crit = CalculateCrit(hc, pd, dir);
 
             int lanceDamage = pd.beamDamage;
 
@@ -71,12 +76,16 @@ namespace Lightbringer
                              ? hc.ATTACK_DURATION_CH
                              : hc.ATTACK_DURATION);
 
-            // Fragile Nightmare damage calculations
-            if (pd.equippedCharm_25 &&
-                pd.MPCharge > 3) // Fragile Strength > Fragile Nightmare
+            // Handle audio
+            if (dir == AttackDirection.normal || (dir == AttackDirection.upward && pd.equippedCharm_8))
             {
-                pd.beamDamage += pd.MPCharge / 20;
-                hc.TakeMP(7);
+                if (BeamAudioClip == null)
+                {
+                    GameObject BeamPrefabGameObject = hc.GetAttr<GameObject>("grubberFlyBeamPrefabU");
+                    AudioSource BeamAudio = BeamPrefabGameObject.GetComponent<AudioSource>();
+                    BeamAudioClip = BeamAudio.clip;
+                }
+                hc.GetAttr<AudioSource>("audioSource").PlayOneShot(BeamAudioClip, 0.1f);
             }
 
             if (pd.equippedCharm_38) hc.fsm_orbitShield.SendEvent("SLASH");
@@ -143,10 +152,10 @@ namespace Lightbringer
                             bool longnail = pd.equippedCharm_18;
 
                             if (hc.cState.facingRight || longnail)
-                                SpawnBeams(Right, 1.5f, 1.5f, positionY: tShell ? new[] {.2f, .7f} : new[] {0f, .9f});
+                                SpawnBeams(Right, 1.5f, 1.5f, positionY: tShell ? new[] { .2f, .7f } : new[] { 0f, .9f });
 
                             if (!hc.cState.facingRight || longnail)
-                                SpawnBeams(Left, 1.5f, 1.5f, positionY: tShell ? new[] {.2f, .7f} : new[] {0f, .9f});
+                                SpawnBeams(Left, 1.5f, 1.5f, positionY: tShell ? new[] { .2f, .7f } : new[] { 0f, .9f });
                         }
                         // Longnail
                         else if (pd.equippedCharm_18)
@@ -155,18 +164,18 @@ namespace Lightbringer
                         }
                         else
                         {
-                            SpawnBeam(hc.cState.facingRight, 1.5f, 1.5f, positionY: tShell ? .2f : .1f, recoil: tShell);
+                            SpawnBeam(hc.cState.facingRight, 1.5f, 1.5f, positionY: tShell ? .2f : .1f);
                         }
                     }
                     // Longnail AND Soul Catcher
                     else if (pd.equippedCharm_20 && pd.equippedCharm_18)
                     {
-                        SpawnBeams(1f, 1f, positionY: tShell ? new float[] {-.2f, .7f} : new float[] {.5f, -.4f});
+                        SpawnBeams(1f, 1f, positionY: tShell ? new float[] { -.2f, .7f } : new float[] { .5f, -.4f });
                     }
                     // Soul Catcher
                     else if (pd.equippedCharm_20)
                     {
-                        SpawnBeams(hc.cState.facingRight, 1f, 1f, positionY: tShell ? new[] {-.2f, .7f} : new[] {.5f, -.4f}, recoils: Recoils.None);
+                        SpawnBeams(hc.cState.facingRight, 1f, 1f, positionY: tShell ? new[] { -.2f, .7f } : new[] { .5f, -.4f });
                     }
                     // Longnail
                     else if (pd.equippedCharm_18)
@@ -178,6 +187,29 @@ namespace Lightbringer
                         SpawnBeam(hc.cState.facingRight, 1f, 1f);
                     }
 
+                    // Handle Recoil
+                    if (!pd.equippedCharm_18)
+                    {
+                        if (pd.equippedCharm_35)
+                        {
+                            if (tShell || pd.equippedCharm_20)
+                            {
+                                if (hc.cState.facingRight) { Recoil(BeamDirection.Right, true); }
+                                else { Recoil(BeamDirection.Left, true); }
+                            }
+                            else
+                            {
+                                if (hc.cState.facingRight) { Recoil(BeamDirection.Right, false); }
+                                else { Recoil(BeamDirection.Left, false); }
+                            }
+                        }
+                        else if (tShell && pd.equippedCharm_20)
+                        {
+                            if (hc.cState.facingRight) { Recoil(BeamDirection.Right, false); }
+                            else { Recoil(BeamDirection.Left, false); }
+                        }
+                    }
+
                     break;
                 // attack upwards
 
@@ -187,10 +219,10 @@ namespace Lightbringer
 
                 case AttackDirection.upward:
                     // Timescale Charm #14 - TIME FRACTURE //
-                    if (pd.equippedCharm_14 && _timeFracture < 2f)
+                    if (pd.equippedCharm_14 && Lightbringer._timefracture < 2f)
                     {
-                        _timeFracture += 0.1f;
-                        SpriteFlash.flash(Color.white, 0.85f, 0.35f, 0f, 0.35f);
+                        Lightbringer._timefracture += 0.1f;
+                        Lightbringer._SpriteFlash.flash(Color.white, 0.85f, 0.35f, 0f, 0.35f);
                     }
 
                     // Upward Attack Charm #8 - RISING LIGHT //
@@ -203,7 +235,6 @@ namespace Lightbringer
                             pd.beamDamage += pd.MPCharge / 20;
                             hc.TakeMP(7);
                         }
-
 
                         pd.nailDamage = pd.beamDamage;
                         PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
@@ -244,9 +275,9 @@ namespace Lightbringer
             }
         }
 
-        private static bool CalculateCrit(HeroController hc, PlayerData pd)
+        private static bool CalculateCrit(HeroController hc, PlayerData pd, AttackDirection dir)
         {
-            if (!pd.equippedCharm_3) return false;
+            if (!pd.equippedCharm_3 || dir != AttackDirection.normal) return false;
             
             int critChance = _rand.Next(1, 101);
             
@@ -264,12 +295,6 @@ namespace Lightbringer
         }
 
         #region Recoil
-        internal enum Recoils
-        {
-            None,
-            Normal,
-            Long
-        }
 
         private static void Recoil(BeamDirection dir, bool @long)
         {
@@ -318,12 +343,10 @@ namespace Lightbringer
             float?       positionX     = null,
             IList<float> positionY     = null,
             bool         offset        = true,
-            bool         rightNegative = true,
-            bool?        recoil        = null,
-            Recoils      recoils       = Recoils.Long
+            bool         rightNegative = true
         )
         {
-            SpawnBeams(dir ? Right : Left, scaleX, scaleY, positionX, positionY, offset, rightNegative, recoil, recoils);
+            SpawnBeams(dir ? Right : Left, scaleX, scaleY, positionX, positionY, offset, rightNegative);
         }
 
         private void SpawnBeams
@@ -334,13 +357,11 @@ namespace Lightbringer
             float?        positionX     = null,
             IList<float>  positionY     = null,
             bool          offset        = true,
-            bool          rightNegative = true,
-            bool?         recoil        = null,
-            Recoils       recoils       = Recoils.Long
+            bool          rightNegative = true
         )
         {
-            SpawnBeam(dir, scaleX, scaleY, positionX, positionY?[0], offset, rightNegative, recoil, recoils);
-            SpawnBeam(dir, scaleX, scaleY, positionX, positionY?[1], offset, rightNegative, recoil, recoils);
+            SpawnBeam(dir, scaleX, scaleY, positionX, positionY?[0], offset, rightNegative);
+            SpawnBeam(dir, scaleX, scaleY, positionX, positionY?[1], offset, rightNegative);
         }
 
         private void SpawnBeams
@@ -350,28 +371,26 @@ namespace Lightbringer
             float?  positionX     = null,
             object  positionY     = null,
             bool    offset        = true,
-            bool    rightNegative = true,
-            bool?   recoil        = null,
-            Recoils recoils       = Recoils.None
+            bool    rightNegative = true
         )
         {
             switch (positionY)
             {
                 case float posY:
-                    SpawnBeam(Left, scaleX, scaleY, positionX, posY, offset, rightNegative, recoil, recoils);
-                    SpawnBeam(Right, scaleX, scaleY, positionX, posY, offset, rightNegative, recoil, recoils);
+                    SpawnBeam(Left, scaleX, scaleY, positionX, posY, offset, rightNegative);
+                    SpawnBeam(Right, scaleX, scaleY, positionX, posY, offset, rightNegative);
                     break;
                 case float[] posYs:
                     foreach (float y in posYs)
                     {
-                        SpawnBeams(scaleX, scaleY, positionX, y, offset, rightNegative, recoil, recoils);
-                        SpawnBeams(scaleX, scaleY, positionX, y, offset, rightNegative, recoil, recoils);
+                        SpawnBeams(scaleX, scaleY, positionX, y, offset, rightNegative);
+                        SpawnBeams(scaleX, scaleY, positionX, y, offset, rightNegative);
                     }
 
                     break;
                 case null:
-                    SpawnBeam(Left, scaleX, scaleY, positionX, null, offset, rightNegative, recoil, recoils);
-                    SpawnBeam(Right, scaleX, scaleY, positionX, null, offset, rightNegative, recoil, recoils);
+                    SpawnBeam(Left, scaleX, scaleY, positionX, null, offset, rightNegative);
+                    SpawnBeam(Right, scaleX, scaleY, positionX, null, offset, rightNegative);
                     break;
             }
         }
@@ -384,12 +403,10 @@ namespace Lightbringer
             float?  positionX     = null,
             float?  positionY     = null,
             bool    offset        = true,
-            bool    rightNegative = true,
-            bool?   recoil        = null,
-            Recoils recoils       = Recoils.None
+            bool    rightNegative = true
         )
         {
-            SpawnBeam(dir ? Right : Left, scaleX, scaleY, positionX, positionY, offset, rightNegative, recoil, recoils);
+            SpawnBeam(dir ? Right : Left, scaleX, scaleY, positionX, positionY, offset, rightNegative);
         }
 
         private void SpawnBeam
@@ -400,9 +417,7 @@ namespace Lightbringer
             float?        positionX     = null,
             float?        positionY     = null,
             bool          offset        = true,
-            bool          rightNegative = true,
-            bool?         recoil        = null,
-            Recoils       recoils       = Recoils.None
+            bool          rightNegative = true
         )
         {
             string beamPrefab = "grubberFlyBeamPrefab";
@@ -428,6 +443,8 @@ namespace Lightbringer
             HeroController hc = HeroController.instance;
 
             GrubberFlyBeam = hc.GetAttr<GameObject>(beamPrefab).Spawn(hc.transform.position);
+            AudioSource BeamAudio = GrubberFlyBeam.GetComponent<AudioSource>();
+            BeamAudio.enabled = false; // disable audio source for beams
             Transform t = hc.transform;
 
             if (positionX != null)
@@ -437,19 +454,6 @@ namespace Lightbringer
 
             GrubberFlyBeam.transform.SetScaleX((rightNegative && dir == Right ? -1 : 1) * scaleX);
             GrubberFlyBeam.transform.SetScaleY(scaleY);
-
-            // Switch because we can pass *either* a bool or a enum
-            switch (recoil)
-            {
-                case true:
-                    recoils = Recoils.Long;
-                    break;
-                case false:
-                    recoils = Recoils.Normal;
-                    break;
-            }
-
-            if (recoils != Recoils.None) Recoil(dir, recoils == Recoils.Long);
         }
 
         #endregion

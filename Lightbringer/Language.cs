@@ -31,8 +31,6 @@ namespace Lightbringer {
                 "Transient charm created for those who wield the Dream Nail and collect Essence.\n\nAllows the bearer to charge the Dream Nail faster and collect more SOUL with it. Increases SOUL regeneration rate slightly.",
             ["CHARM_DESC_32"] =
                 "Born from imperfect, discarded nails that have fused together. The nails still long to be wielded.\n\nIncreases attack speed moderately.",
-            ["CHARM_DESC_34"] =
-                "Naturally formed within a crystal over a long period. Draws in SOUL from the surrounding air.\n\nThe bearer will focus SOUL at a slower rate, but the healing effect will double and holy power is unleashed. Increases SOUL regeneration rate slightly.",
             ["CHARM_DESC_35"] = "Imbues the lance with holy energy.\n\nGreatly increases damage and lance size.",
             ["CHARM_DESC_25_G"] =
                 "Attacks cost a small amount of SOUL but lance damage is increased based on current SOUL (up to +10 damage). Increases SOUL regeneration rate slightly.\n\nThis charm is unbreakable.",

@@ -48,17 +48,17 @@ namespace Lightbringer
         private float _passionTime = Time.deltaTime;
 
         private Text _textObj;
-        private float _timefracture;
+        public static float _timefracture = 1f;
 
         internal Dictionary<string, Sprite> Sprites;
 
         internal static readonly Random Random = new Random();
 
-        internal static SpriteFlash SpriteFlash { get; } = HeroController.instance.GetAttr<SpriteFlash>("spriteFlash");
+        public static SpriteFlash _SpriteFlash;
 
         public override string GetVersion()
         {
-            return "v1.03";
+            return "v1.20";
         }
 
         public override void Initialize()
@@ -85,6 +85,9 @@ namespace Lightbringer
             On.HeroController.Attack -= Attack;
             On.PlayerData.AddGeo -= AddGeo;
             On.NailSlash.StartSlash -= StartSlash;
+            On.PlayerData.UpdateBlueHealth -= UpdateBlueHealth;
+            On.HeroController.RecoilLeft -= RecoilLeft;
+            On.HeroController.RecoilRight -= RecoilRight;
             ModHooks.Instance.BeforeSavegameSaveHook -= BeforeSaveGameSave;
             ModHooks.Instance.AfterSavegameLoadHook -= AfterSaveGameLoad;
             ModHooks.Instance.SavegameSaveHook -= SaveGameSave;
@@ -97,7 +100,6 @@ namespace Lightbringer
             ModHooks.Instance.HeroUpdateHook -= Update;
             ModHooks.Instance.CharmUpdateHook -= CharmUpdate;
             ModHooks.Instance.LanguageGetHook -= LangGet;
-            ModHooks.Instance.BlueHealthHook -= BlueHealth;
             USceneManager.sceneLoaded -= SceneLoadedHook;
 
             if (PlayerData.instance != null)
@@ -160,6 +162,13 @@ namespace Lightbringer
             // Burning Blade, Fury
             On.NailSlash.StartSlash += StartSlash;
 
+            // Ascending Light won't give 2 hearts
+            On.PlayerData.UpdateBlueHealth += UpdateBlueHealth;
+
+            // Fix Recoil with Steady Blow
+            On.HeroController.RecoilLeft += RecoilLeft;
+            On.HeroController.RecoilRight += RecoilRight;
+
             // Charm Values 
             // Restore Nail Damage 
             // SPRITES!
@@ -199,9 +208,6 @@ namespace Lightbringer
 
             // Custom Text
             ModHooks.Instance.LanguageGetHook += LangGet;
-
-            // Ascending Light won't give 2 hearts
-            ModHooks.Instance.BlueHealthHook += BlueHealth;
 
             // Lance Textures 
             // Canvas for Muzznik Text Soul Orb FSM
@@ -403,10 +409,17 @@ namespace Lightbringer
             HeroController.instance.SetAttr("NAIL_TERRAIN_CHECK_TIME", _origNailTerrainCheckTime);
         }
 
-        private static int BlueHealth()
+        private static void UpdateBlueHealth(On.PlayerData.orig_UpdateBlueHealth orig, PlayerData self)
         {
-            // Make Rising Light not give 2 blue health.
-            return PlayerData.instance.equippedCharm_8 ? -2 : 0;
+            self.SetInt("healthBlue", 0);
+            //if (this.GetBool("equippedCharm_8")) // Make Rising Light not give 2 blue health.
+            //{
+            //    this.SetIntSwappedArgs(this.GetInt("healthBlue") + 2, "healthBlue");
+            //}
+            if (self.GetBool("equippedCharm_9"))
+            {
+                self.SetInt("healthBlue", self.GetInt("healthBlue") + 4);
+            }
         }
 
         private string LangGet(string key, string sheetTitle)
@@ -421,10 +434,10 @@ namespace Lightbringer
                 (PlayerData.instance.MPCharge  < PlayerData.instance.maxMP ||
                  PlayerData.instance.MPReserve != PlayerData.instance.MPReserveMax))
             {
-                int lostGeo = (PlayerData.instance.maxMP - 1    - PlayerData.instance.MPCharge)  / 3 +
+                int lostGeo = (PlayerData.instance.maxMP - 1 - PlayerData.instance.MPCharge)  / 3 +
                               (PlayerData.instance.MPReserveMax - PlayerData.instance.MPReserve) / 3 + 1;
-                PlayerData.instance.AddMPCharge(lostGeo > amount ? amount * 3 : lostGeo * 3);
-                orig(self, lostGeo                      > amount ? 0 : amount - lostGeo);
+                HeroController.instance.AddMPChargeSpa(lostGeo > amount ? amount * 3 : lostGeo * 3);
+                orig(self, lostGeo > amount ? 0 : amount - lostGeo);
             }
             else
             {
@@ -521,7 +534,7 @@ namespace Lightbringer
             if (_hitNumber != 5) return 0;
             HeroController.instance.AddHealth(1);
             _hitNumber = 0;
-            SpriteFlash.flash(Color.red, 0.7f, 0.45f, 0f, 0.45f);
+            _SpriteFlash.flash(Color.red, 0.7f, 0.45f, 0f, 0.45f);
             return 0;
         }
 
@@ -562,6 +575,22 @@ namespace Lightbringer
             return 0;
         }
 
+        // Remove Steady Blow's effect
+        private static void RecoilLeft(On.HeroController.orig_RecoilLeft orig, HeroController self)
+        {
+            bool temp = self.playerData.equippedCharm_14;
+            self.playerData.equippedCharm_14 = false;
+            orig(self);
+            self.playerData.equippedCharm_14 = temp;
+        }
+        private static void RecoilRight(On.HeroController.orig_RecoilRight orig, HeroController self)
+        {
+            bool temp = self.playerData.equippedCharm_14;
+            self.playerData.equippedCharm_14 = false;
+            orig(self);
+            self.playerData.equippedCharm_14 = temp;
+        }
+
         private void Update()
         {
             if (_timefracture < 1f || PlayerData.instance.ghostCoins == 1)
@@ -591,6 +620,10 @@ namespace Lightbringer
             _manaRegenTime += Time.deltaTime * Time.timeScale;
             if (_manaRegenTime >= 1.11f && GameManager.instance.soulOrb_fsm != null)
             {
+                if (_SpriteFlash == null)
+                {
+                    _SpriteFlash = HeroController.instance.GetComponent<SpriteFlash>();
+                }
                 // Mana regen
                 _manaRegenTime -= 1.11f;
                 HeroController.instance.AddMPChargeSpa(1);
@@ -604,37 +637,37 @@ namespace Lightbringer
 
                 switch (PlayerData.instance.geo)
                 {
-                    // Easter Eg.11g
+                    // Easter Egg
                     case 753:
                         HeroController.instance.AddMPChargeSpa(3);
                         int num = Random.Next(1, 6);
                         switch (num)
                         {
                             case 1:
-                                SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
+                                _SpriteFlash.flash(Color.green, 0.6f, 0.45f, 0f, 0.45f);
                                 break;
                             case 2:
-                                SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
+                                _SpriteFlash.flash(Color.red, 0.6f, 0.45f, 0f, 0.45f);
                                 break;
                             case 3:
-                                SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
+                                _SpriteFlash.flash(Color.magenta, 0.6f, 0.45f, 0f, 0.45f);
                                 break;
                             case 4:
-                                SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
+                                _SpriteFlash.flash(Color.yellow, 0.6f, 0.45f, 0f, 0.45f);
                                 break;
                             default:
-                                SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
+                                _SpriteFlash.flash(Color.blue, 0.6f, 0.45f, 0f, 0.45f);
                                 break;
                         }
 
                         break;
                     case 56:
                         HeroController.instance.AddMPChargeSpa(3);
-                        SpriteFlash.flash(Color.black, 1.11f, 0f, 1.11f, 0f);
+                        _SpriteFlash.flash(Color.black, 1.11f, 0f, 1.11f, 0f);
                         break;
                     default:
                         if (PlayerData.instance.equippedCharm_6)
-                            SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
+                            _SpriteFlash.flash(Color.white, 0.6f, 0.45f, 0f, 0.45f);
 
                         break;
                 }
@@ -649,14 +682,35 @@ namespace Lightbringer
             _passionDirection = !_passionDirection;
 
             float posX = (_passionDirection ? -1 : 1) * Random.Next(3, 12);
-            new AttackHandler().SpawnBeam
-            (
-                _passionDirection,
-                1f,
-                1f,
-                posX,
-                -0.5f + posX / 6f
-            );
+            if (!_passionDirection)
+            {
+                new AttackHandler().SpawnBeam
+                (
+                    _passionDirection,
+                    1f,
+                    1f,
+                    posX,
+                    -0.5f + posX / 6f
+                );
+            }
+            else
+            {
+                new AttackHandler().SpawnBeam
+                (
+                    _passionDirection,
+                    1f,
+                    1f,
+                    posX,
+                    0.5f - posX / 6f
+                );
+            }
+            if (AttackHandler.BeamAudioClip == null)
+            {
+                GameObject BeamPrefabGameObject = HeroController.instance.GetAttr<GameObject>("grubberFlyBeamPrefabU");
+                AudioSource BeamAudio = BeamPrefabGameObject.GetComponent<AudioSource>();
+                AttackHandler.BeamAudioClip = BeamAudio.clip;
+            }
+            HeroController.instance.GetAttr<AudioSource>("audioSource").PlayOneShot(AttackHandler.BeamAudioClip, 0.1f);
         }
     }
 }
