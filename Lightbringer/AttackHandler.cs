@@ -30,6 +30,7 @@ namespace Lightbringer
 
         public void Attack(HeroController hc, AttackDirection dir)
         {
+            LightbringerSettings settings = Lightbringer.Instance.Settings;
             PlayerData pd = PlayerData.instance;
 
             hc.cState.altAttack = false;
@@ -49,10 +50,10 @@ namespace Lightbringer
             PlayMakerFSM.BroadcastEvent("UPDATE NAIL DAMAGE");
 
             // LANCE
-            pd.beamDamage = 3 + pd.nailSmithUpgrades * 3;
+            pd.beamDamage = settings.BaseBeamDamage + pd.nailSmithUpgrades * settings.UpgradeBeamDamage;
 
             // Radiant Jewel (Elegy)
-            if (pd.equippedCharm_35) pd.beamDamage += 5;
+            if (pd.equippedCharm_35) pd.beamDamage += settings.RadiantJewelDamage;
 
             // Fragile Nightmare damage calculations
             if (dir == AttackDirection.normal && pd.equippedCharm_25 &&
@@ -86,6 +87,14 @@ namespace Lightbringer
                     BeamAudioClip = BeamAudio.clip;
                 }
                 hc.GetAttr<AudioSource>("audioSource").PlayOneShot(BeamAudioClip, 0.1f);
+            }
+            
+            // Fragile Nightmare damage calculations
+            if (pd.equippedCharm_25
+                && pd.MPCharge > settings.FragileNightmareSoulCost) // Fragile Strength > Fragile Nightmare
+            {
+                pd.beamDamage += (int) (pd.MPCharge * settings.FragileNightmareScaleFactor);
+                hc.TakeMP(settings.FragileNightmareSoulCost);
             }
 
             if (pd.equippedCharm_38) hc.fsm_orbitShield.SendEvent("SLASH");
